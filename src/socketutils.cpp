@@ -116,9 +116,9 @@ socketServer::handler->endHandler();
 
   // TODO: dump to a file instead of to cout
   for (size_t index = 0; index < timestamps.size(); index++) {
-    std::cout << "Tag: " << timestamps[index].first << " happened "
+    std::cout << "Tag: \"" << timestamps[index].first << "\": " 
               << timestamps[index].second - timestamps[0].second
-              << " nanoseconds after the program start.\n";
+              << " nanoseconds after progam start.\n";
   }  
 }
 
@@ -182,19 +182,16 @@ void socketClient::write(void *buf, size_t size) {
 }
 
 void socketClient::sendSessionStart() {
-  std::cout << "Sending start to fd" << sock << std::endl;
   char startBuf[] = {SESSION_START};
   write(startBuf, sizeof(char));
 }
 
 void socketClient::sendSessionEnd() {
-  std::cout << "Sending end to fd" << sock << std::endl;
   char endBuf[] = {SESSION_END};
   write(endBuf, sizeof(char));
 }
 
 void socketClient::sendTag(std::string tagName) {
-  std::cout << "Sending to fd" << sock << std::endl;
   char tagBuf[] = {SESSION_TAG};
   size_t tagSize[] = {tagName.size() + 1};
   write(tagBuf, sizeof(char));

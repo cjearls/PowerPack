@@ -14,11 +14,13 @@ int readServerConfig(std::string configFilePath) {
 
   while (!configFile.eof()) {
     getline(configFile, tempString);
-    if (isSubString(tempString, "port")) {
-      portNumber = extractConfigValue(tempString);
-    } else {
-      std::cerr << "Unrecognized value in server config file\n" << tempString;
-      exit(EXIT_FAILURE);
+    if (tempString.length()) {
+      if (isSubString(tempString, "port")) {
+        portNumber = extractConfigValue(tempString);
+      } else {
+        std::cerr << "Unrecognized value in server config file\n" << tempString;
+        exit(EXIT_FAILURE);
+      }
     }
   }
 
@@ -47,13 +49,15 @@ std::pair<int, std::string> readClientConfig(std::string configFilePath) {
   while (!configFile.eof()) {
     getline(configFile, tempString);
     std::cout << tempString << std::endl;
-    if (isSubString(tempString, "port")) {
-      portNumber = extractConfigValue(tempString);
-    } else if (isSubString(tempString, "serveraddress")) {
-      IPAddress = extractConfigValue(tempString);
-    } else {
-      std::cerr << "Unrecognized value in client config file\n";
-      exit(EXIT_FAILURE);
+    if (tempString.length()) {  // ignore empty lines
+      if (isSubString(tempString, "port")) {
+        portNumber = extractConfigValue(tempString);
+      } else if (isSubString(tempString, "serveraddress")) {
+        IPAddress = extractConfigValue(tempString);
+      } else {
+        std::cerr << "Unrecognized value in client config file" << std::endl;
+        exit(EXIT_FAILURE);
+      }
     }
   }
 
@@ -66,7 +70,7 @@ std::pair<int, std::string> readClientConfig(std::string configFilePath) {
 }
 
 std::string extractConfigValue(std::string inputString) {
-  size_t delimPosition;
+  std::size_t delimPosition;
   std::cout << "extracting\n";
   if ((delimPosition = inputString.find("=")) == std::string::npos) {
     std::cerr << "Unable to find '=' in config file\n";

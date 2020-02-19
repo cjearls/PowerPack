@@ -7,6 +7,7 @@ void printError(std::string errorMsg) {
 
 socketServer::socketServer(int portNumber, eventHandler *handler) {
   socketServer::handler = handler;
+  std::cerr << portNumber;
 
   // This causes the connection to be IPv4.
   address.sin_family = AF_INET;
@@ -81,6 +82,7 @@ void socketServer::listenForClient() {
 int socketServer::handleClientConnection(int readSocket) {
   char msgTypeBuffer[1];
   readData(readSocket, msgTypeBuffer, sizeof(char));
+  std::cout << "read: " << msgTypeBuffer[0]  << std::endl;
   switch (msgTypeBuffer[0]) {
     case SESSION_START:
       handleSessionStart();
@@ -171,7 +173,7 @@ void socketClient::readData(void *buf, size_t size) {
   }
 }
 
-void socketClient::write(void *buf, size_t size) {
+void socketClient::write( void *buf, size_t size) {
   int bytesSent;
 
   if ((bytesSent = send(sock, buf, size, 0))  <= 0 ) {
@@ -194,7 +196,28 @@ void socketClient::sendSessionEnd() {
 void socketClient::sendTag(std::string tagName) {
   char tagBuf[] = {SESSION_TAG};
   size_t tagSize[] = {tagName.size() + 1};
+  struct iovec* io;
+  struct iovec iov;
+  io = &iov;
+  
+  size_t bufferSize = sizeof(char) + sizeof(size_t) + *tagSize;
+  void* buffer = calloc(sizeof(char), bufferSize);
+std::cout << "My buffer before: " << (char*) buffer << std::endl;
+  memcpy(buffer, tagBuf, sizeof(char));
+  std::cout << "My buffer tagbuf: " << *((int*) buffer) << std::endl;
+  memcpy(buffer+sizeof(char), tagSize, sizeof(size_t));
+  std::cout << "My buffer tagsize: " << *((size_t*) (buffer + 1)) << std::endl;
+  memcpy(buffer +sizeof(char) + sizeof(size_t), tagName.c_str(), tagName.size() + 1);
+
+  std::cout << "My buffer: " << ((char*) buffer + 1 + sizeof(size_t))<< std::endl;
+  io->iov_base = buffer;
+  io->iov_len = bufferSize;
+
+  writev(sock, io, 1);
+
+  /*
   write(tagBuf, sizeof(char));
   write(tagSize, sizeof(size_t));
   write((void *)tagName.c_str(), tagName.size() + 1);
+  */
 }

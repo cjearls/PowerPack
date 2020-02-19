@@ -45,7 +45,7 @@ serverexample: serverexample.o $(OBJS) $(NIDAQOBJS)
 	$(CXX)  $(LDFLAGS) $(LIBFLAGS) -Wall -pthread serverexample.o $(OBJS) $(NIDAQOBJS) -o serverexample
 
 clientexample: clientexample.o $(OBJS)
-	$(CXX) $(LDFLAGS) $(LIBFLAGS) -Wall -pthread clientexample.o $(OBJS) -o clientexample
+	$(CXX) -Wall -pthread clientexample.o $(OBJS) -o clientexample
 
 clientexample.o: functionapi.h
 serverexample.o: functionapi.h nidaqmxeventhandler.h

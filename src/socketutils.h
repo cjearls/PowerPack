@@ -6,6 +6,7 @@
 #include <netinet/in.h>
 #include <sys/socket.h>
 #include <sys/ioctl.h>
+#include <sys/uio.h>
 #include <unistd.h>
 #include <cerrno>
 #include <clocale>

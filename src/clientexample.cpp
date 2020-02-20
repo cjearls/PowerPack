@@ -12,7 +12,8 @@ int clientThread(std::string configFile) {
   std::size_t size;
 
   for(std::size_t& n : params){
-    client.sendTag("Starting for n := " + n);
+
+    client.sendTag("Starting for n := " + std::to_string(n));
     size = n * n;
 
     double* a = new double[size];

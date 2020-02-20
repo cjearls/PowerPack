@@ -20,7 +20,7 @@ void NIDAQmxEventHandler::startHandler() {
   DAQmxErrChk(DAQmxCreateTask("", &taskHandle));
 
   DAQmxErrChk(DAQmxCreateAIVoltageChan(
-      taskHandle, "cDAQ1Mod1/ai0,cDAQ1Mod1/ai5", "", DAQmx_Val_Cfg_Default,
+      taskHandle, "cDAQ3Mod1/ai0", "", DAQmx_Val_Cfg_Default,
       -10.0, 10.0, DAQmx_Val_Volts, NULL));
 
   DAQmxErrChk(DAQmxCfgSampClkTiming(taskHandle, NULL, 10000.0, DAQmx_Val_Rising,

@@ -1,7 +1,7 @@
 SHELL = /bin/sh
 
 CXX = g++
-CXXFLAGS += -std=c++11 
+CXXFLAGS += -std=c++11 -fPIC
 
 ###########NIDAQMAX RELATED FLAGS/VARIABLES
 LIBS = nidaqmx
@@ -39,6 +39,9 @@ all: example
 debug:	CXXFLAGS += -ggdb3 -Wall -Wextra -Wshadow -Wnon-virtual-dtor -Wcast-align -Wunused -Woverloaded-virtual -Wpedantic -Wconversion -Wsign-conversion -Wnull-dereference -Wdouble-promotion -Wformat=2 -Wduplicated-cond -Wduplicated-branches -Wlogical-op -Wuseless-cast
 debug: all
 
+so: $(OBJS)
+	$(CXX) -shared -o libpowerpack.so $(OBJS)
+
 example: serverexample clientexample
 
 serverexample: serverexample.o $(OBJS) $(NIDAQOBJS)
@@ -56,6 +59,7 @@ socketutils.o: eventhandler.h socketutils.h timeutils.h
 nidaqmxeventhandler.o: eventhandler.h nidaqmxeventhandler.h
 eventhandler.o: eventhandler.h
 timeutils.o: timeutils.h
+
 
 .PHONY: clean
 clean:

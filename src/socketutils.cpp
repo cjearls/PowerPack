@@ -80,9 +80,9 @@ void socketServer::listenForClient() {
 }
 
 int socketServer::handleClientConnection(int readSocket) {
-  char msgTypeBuffer[1];
-  readData(readSocket, msgTypeBuffer, sizeof(char));
-  switch (msgTypeBuffer[0]) {
+  char msgTypeBuffer;
+  readData(readSocket, &msgTypeBuffer, sizeof(char));
+  switch (msgTypeBuffer) {
     case SESSION_START:
       handleSessionStart();
       break;
@@ -96,7 +96,8 @@ int socketServer::handleClientConnection(int readSocket) {
       break;
 
     default:
-      printError("Server received unknown msg code");
+      std::cerr << msgTypeBuffer << std::endl;
+      printError("received unknown msg code");
   }
 
   return 0;
@@ -126,20 +127,22 @@ socketServer::handler->endHandler();
 void socketServer::handleTag(int socketFD) {
   // Timestamps is pushed with an empty string so that the nanoseconds timestamp
   // can be recorded as accurately as possible.
-  timestamps.emplace_back("", nanos());
 
   // This receives the size of the string that will be transmitted.
-  size_t sizeBuffer[1] = {0};
-  readData(socketFD, sizeBuffer, sizeof(size_t));
+  size_t tagSize;
+  readData(socketFD, &tagSize, sizeof(size_t));
 
   // This receives the tag string from the client.
-  char *msgBuffer = new char[sizeBuffer[0]];
-  readData(socketFD, msgBuffer, sizeBuffer[0]);
+  char* msgBuffer = (char*)calloc(tagSize, sizeof(char));
+  readData(socketFD, msgBuffer, tagSize);
+
+  uint64_t currTime;
+  readData(socketFD, &currTime, sizeof(uint64_t));
 
   // The correct tag is given to the timestamp.
-  timestamps.back().first = msgBuffer;
+  timestamps.emplace_back(msgBuffer, currTime);
 
-  delete[] msgBuffer;
+  free(msgBuffer);
   socketServer::handler->tagHandler();
 }
 
@@ -193,23 +196,30 @@ void socketClient::sendSessionEnd() {
 }
 
 void socketClient::sendTag(std::string tagName) {
-  int8_t tagBuf = SESSION_TAG;
+  char __buffer [512];
+  void* buffer = (void*) __buffer;
+  uint64_t currTime = nanos();
+  char tagBuf = SESSION_TAG;
+  size_t position = 0;
   size_t tagSize = tagName.size() + 1;
-  
-  size_t bufferSize = sizeof(char) + sizeof(size_t) + tagSize;
-  int8_t* buffer = (int8_t*)calloc(sizeof(char), bufferSize);
 
-  //std::cout << "My buffer before: " << (char*) buffer << std::endl;
-  memcpy(buffer, &tagBuf, sizeof(char));
-  
-  //std::cout << "My buffer tagbuf: " << *((int*) buffer) << std::endl;
-  memcpy(buffer+sizeof(char), &tagSize, sizeof(size_t));
-  
-  //std::cout << "My buffer tagsize: " << *((size_t*) (buffer + 1)) << std::endl;
-  memcpy(buffer +sizeof(char) + sizeof(size_t), tagName.c_str(), tagName.size() + 1);
-  
-  //std::cout << "My buffer: " << ((char*) buffer + 1 + sizeof(size_t))<< std::endl;
+  memcpy((buffer)+position, &tagBuf, sizeof(char));
+  position += sizeof(char);
 
-  write(buffer,bufferSize);
-  delete buffer;
+  memcpy((buffer)+position, &tagSize, sizeof(size_t));
+  position += sizeof(size_t);
+
+  memcpy((buffer)+position, (void *)tagName.c_str(), tagName.size() + 1);
+  position += tagName.size() + 1;
+
+  memcpy((buffer)+position, &currTime, sizeof(u_int64_t));
+  position += sizeof(u_int64_t);
+
+  std::cerr << tagBuf << std::endl;
+  std::cerr << tagSize << std::endl;
+  std::cerr << tagName.c_str() << std::endl;
+  std::cerr << currTime << std::endl;
+  std::cerr << (uint8_t)(*(buffer + 0)) << std::endl;
+
+  write(&buffer, position);
 }

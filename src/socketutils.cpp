@@ -203,23 +203,17 @@ void socketClient::sendTag(std::string tagName) {
   size_t position = 0;
   size_t tagSize = tagName.size() + 1;
 
-  memcpy((buffer)+position, &tagBuf, sizeof(char));
+  memcpy(buffer+position, &tagBuf, sizeof(char));
   position += sizeof(char);
 
-  memcpy((buffer)+position, &tagSize, sizeof(size_t));
+  memcpy(buffer+position, &tagSize, sizeof(size_t));
   position += sizeof(size_t);
 
-  memcpy((buffer)+position, (void *)tagName.c_str(), tagName.size() + 1);
+  memcpy(buffer+position, tagName.c_str(), tagName.size() + 1);
   position += tagName.size() + 1;
 
-  memcpy((buffer)+position, &currTime, sizeof(u_int64_t));
-  position += sizeof(u_int64_t);
+  memcpy(buffer+position, &currTime, sizeof(uint64_t));
+  position += sizeof(uint64_t);
 
-  std::cerr << tagBuf << std::endl;
-  std::cerr << tagSize << std::endl;
-  std::cerr << tagName.c_str() << std::endl;
-  std::cerr << currTime << std::endl;
-  std::cerr << (uint8_t)(*(buffer + 0)) << std::endl;
-
-  write(&buffer, position);
+  write(buffer, position);
 }

@@ -20,7 +20,7 @@ void NIDAQmxEventHandler::startHandler() {
   DAQmxErrChk(DAQmxCreateTask("", &taskHandle));
 
   DAQmxErrChk(DAQmxCreateAIVoltageChan(
-      taskHandle, "cDAQ3Mod1/ai0", "", DAQmx_Val_Cfg_Default,
+      taskHandle, "cDAQ1Mod8/ai0,cDAQ1Mod3/ai0", "", DAQmx_Val_Cfg_Default,
       -10.0, 10.0, DAQmx_Val_Volts, NULL));
 
   DAQmxErrChk(DAQmxCfgSampClkTiming(taskHandle, NULL, 10000.0, DAQmx_Val_Rising,
@@ -78,7 +78,8 @@ int32 CVICALLBACK EveryNCallback(TaskHandle taskHandle,
   for (size_t index = 0; index < BUFFER_SIZE; index++) {
     giantString += std::to_string(data[index]) + " ";
   }
-  //std::cout << giantString << "\n\n\n";
+  
+  std::cout << giantString << "\n\n\n";
 
 Error:
   if (DAQmxFailed(error)) {

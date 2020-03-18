@@ -7,6 +7,7 @@ void printError(std::string errorMsg) {
 
 socketServer::socketServer(int portNumber, eventHandler *handler) {
   socketServer::handler = handler;
+  std::cerr << portNumber;
 
   // This causes the connection to be IPv4.
   address.sin_family = AF_INET;
@@ -79,15 +80,15 @@ void socketServer::listenForClient() {
 }
 
 int socketServer::handleClientConnection(int readSocket) {
-  char msgTypeBuffer[1];
-  readData(readSocket, msgTypeBuffer, sizeof(char));
-  switch (msgTypeBuffer[0]) {
+  char msgTypeBuffer;
+  readData(readSocket, &msgTypeBuffer, sizeof(char));
+  switch (msgTypeBuffer) {
     case SESSION_START:
-      handleSessionStart();
+      handleSessionStart(readSocket);
       break;
 
     case SESSION_END:
-      handleSessionEnd();
+      handleSessionEnd(readSocket);
       return 1;
 
     case SESSION_TAG:
@@ -95,21 +96,29 @@ int socketServer::handleClientConnection(int readSocket) {
       break;
 
     default:
-      printError("Server received unknown msg code");
+      std::cerr << msgTypeBuffer << std::endl;
+      printError("received unknown msg code");
   }
 
   return 0;
 }
 
-void socketServer::handleSessionStart() {
+void socketServer::handleSessionStart(int readSocket) {
   
   // TODO: start the meter
   socketServer::handler->startHandler();
-  timestamps.emplace_back("sessionStart", nanos());
+
+  uint64_t timestamp;
+  read(readSocket, &timestamp, sizeof(uint64_t));
+  timestamps.emplace_back("Starting Session...", timestamp);
+  char response = HANDSHAKE_OK;
+  write(readSocket, &response, sizeof(char));
 }
 
-void socketServer::handleSessionEnd() {
-  timestamps.emplace_back("sessionEnd", nanos());
+void socketServer::handleSessionEnd(int readSocket) {
+  uint64_t timestamp;
+  read(readSocket, &timestamp, sizeof(uint64_t));
+  timestamps.emplace_back("Ending Session...", timestamp);
   // TODO: stop the meter
 
 socketServer::handler->endHandler();
@@ -125,20 +134,22 @@ socketServer::handler->endHandler();
 void socketServer::handleTag(int socketFD) {
   // Timestamps is pushed with an empty string so that the nanoseconds timestamp
   // can be recorded as accurately as possible.
-  timestamps.emplace_back("", nanos());
 
   // This receives the size of the string that will be transmitted.
-  size_t sizeBuffer[1] = {0};
-  readData(socketFD, sizeBuffer, sizeof(size_t));
+  size_t tagSize;
+  readData(socketFD, &tagSize, sizeof(size_t));
 
   // This receives the tag string from the client.
-  char *msgBuffer = new char[sizeBuffer[0]];
-  readData(socketFD, msgBuffer, sizeBuffer[0]);
+  char* msgBuffer = (char*)calloc(tagSize, sizeof(char));
+  readData(socketFD, msgBuffer, tagSize);
+
+  uint64_t currTime;
+  readData(socketFD, &currTime, sizeof(uint64_t));
 
   // The correct tag is given to the timestamp.
-  timestamps.back().first = msgBuffer;
+  timestamps.emplace_back(msgBuffer, currTime);
 
-  delete[] msgBuffer;
+  free(msgBuffer);
   socketServer::handler->tagHandler();
 }
 
@@ -171,7 +182,7 @@ void socketClient::readData(void *buf, size_t size) {
   }
 }
 
-void socketClient::write(void *buf, size_t size) {
+void socketClient::write( void *buf, size_t size) {
   int bytesSent;
 
   if ((bytesSent = send(sock, buf, size, 0))  <= 0 ) {
@@ -182,19 +193,65 @@ void socketClient::write(void *buf, size_t size) {
 }
 
 void socketClient::sendSessionStart() {
-  char startBuf[] = {SESSION_START};
-  write(startBuf, sizeof(char));
+  char __buffer [512];
+  void* buffer = (void*) __buffer;
+  uint64_t currTime = nanos();
+  char tagBuf = SESSION_START;
+  size_t position = 0;
+
+  memcpy(buffer+position, &tagBuf, sizeof(char));
+  position += sizeof(char);
+
+  memcpy(buffer+position, &currTime, sizeof(uint64_t));
+  position += sizeof(uint64_t);
+
+  write(buffer, position);
+
+  char response;
+  readData(&response, sizeof(char));
+
+  if(response != HANDSHAKE_OK) {
+    std::cerr << "Handshake with server failed!" << std::endl;
+    exit(-1);
+  }
+  std::cout << "Handshake OK!" << std::endl;
 }
 
 void socketClient::sendSessionEnd() {
-  char endBuf[] = {SESSION_END};
-  write(endBuf, sizeof(char));
+  char __buffer [512];
+  void* buffer = (void*) __buffer;
+  uint64_t currTime = nanos();
+  char tagBuf = SESSION_END;
+  size_t position = 0;
+
+  memcpy(buffer+position, &tagBuf, sizeof(char));
+  position += sizeof(char);
+
+  memcpy(buffer+position, &currTime, sizeof(uint64_t));
+  position += sizeof(uint64_t);
+
+  write(buffer, position);
 }
 
 void socketClient::sendTag(std::string tagName) {
-  char tagBuf[] = {SESSION_TAG};
-  size_t tagSize[] = {tagName.size() + 1};
-  write(tagBuf, sizeof(char));
-  write(tagSize, sizeof(size_t));
-  write((void *)tagName.c_str(), tagName.size() + 1);
+  char __buffer [512];
+  void* buffer = (void*) __buffer;
+  uint64_t currTime = nanos();
+  char tagBuf = SESSION_TAG;
+  size_t position = 0;
+  size_t tagSize = tagName.size() + 1;
+
+  memcpy(buffer+position, &tagBuf, sizeof(char));
+  position += sizeof(char);
+
+  memcpy(buffer+position, &tagSize, sizeof(size_t));
+  position += sizeof(size_t);
+
+  memcpy(buffer+position, tagName.c_str(), tagName.size() + 1);
+  position += tagName.size() + 1;
+
+  memcpy(buffer+position, &currTime, sizeof(uint64_t));
+  position += sizeof(uint64_t);
+
+  write(buffer, position);
 }

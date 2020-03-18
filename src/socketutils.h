@@ -6,6 +6,7 @@
 #include <netinet/in.h>
 #include <sys/socket.h>
 #include <sys/ioctl.h>
+#include <sys/uio.h>
 #include <unistd.h>
 #include <cerrno>
 #include <clocale>
@@ -22,6 +23,7 @@
 #define SESSION_START 0
 #define SESSION_END 1
 #define SESSION_TAG 2
+#define HANDSHAKE_OK 3
 
 class socketServer {
  public:
@@ -42,7 +44,7 @@ class socketServer {
   sockaddr_in address;
 
   // This stores a list of timestamps and their identifying strings.
-  std::vector<std::pair<std::string, u_int64_t>> timestamps;
+  std::vector<std::pair<std::string, uint64_t>> timestamps;
 
   // This is a wrapper for socket read that stores the data in the given buffer.
   void readData(int socketFD, void* buf, size_t size);
@@ -56,11 +58,11 @@ class socketServer {
 
   // This does the things needed at a session start such as starting
   // the meter and taking the first timestamp.
-  void handleSessionStart();
+  void handleSessionStart(int readSocket);
 
   // This does the things needed at the end of a session such as
   // stopping the meter and dumping the timestamps and meter readings to a file.
-  void handleSessionEnd();
+  void handleSessionEnd(int readSocket);
 
   // This marks the timestamp and string of a tag that has been
   // received.

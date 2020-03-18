@@ -48,7 +48,7 @@ serverexample: serverexample.o $(OBJS) $(NIDAQOBJS)
 	$(CXX)  $(LDFLAGS) $(LIBFLAGS) -Wall -pthread serverexample.o $(OBJS) $(NIDAQOBJS) -o serverexample
 
 clientexample: clientexample.o $(OBJS)
-	$(CXX) $(LDFLAGS) $(LIBFLAGS) -Wall -pthread clientexample.o $(OBJS) -o clientexample
+	$(CXX) -Wall -pthread clientexample.o $(OBJS) -o clientexample
 
 clientexample.o: functionapi.h
 serverexample.o: functionapi.h nidaqmxeventhandler.h
@@ -63,4 +63,4 @@ timeutils.o: timeutils.h
 
 .PHONY: clean
 clean:
-	rm -f *.o valgrind.log %1 core clientexample serverexample testsockets
+	rm -f *.o *.so valgrind.log %1 core clientexample serverexample testsockets

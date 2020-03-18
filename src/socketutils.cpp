@@ -84,11 +84,11 @@ int socketServer::handleClientConnection(int readSocket) {
   readData(readSocket, &msgTypeBuffer, sizeof(char));
   switch (msgTypeBuffer) {
     case SESSION_START:
-      handleSessionStart();
+      handleSessionStart(readSocket);
       break;
 
     case SESSION_END:
-      handleSessionEnd();
+      handleSessionEnd(readSocket);
       return 1;
 
     case SESSION_TAG:
@@ -103,15 +103,20 @@ int socketServer::handleClientConnection(int readSocket) {
   return 0;
 }
 
-void socketServer::handleSessionStart() {
+void socketServer::handleSessionStart(int readSocket) {
   
   // TODO: start the meter
   socketServer::handler->startHandler();
-  timestamps.emplace_back("sessionStart", nanos());
+
+  uint64_t timestamp;
+  read(readSocket, &timestamp, sizeof(uint64_t));
+  timestamps.emplace_back("Starting Session...", timestamp);
 }
 
-void socketServer::handleSessionEnd() {
-  timestamps.emplace_back("sessionEnd", nanos());
+void socketServer::handleSessionEnd(int readSocket) {
+  uint64_t timestamp;
+  read(readSocket, &timestamp, sizeof(uint64_t));
+  timestamps.emplace_back("Ending Session...", timestamp);
   // TODO: stop the meter
 
 socketServer::handler->endHandler();
@@ -186,13 +191,35 @@ void socketClient::write( void *buf, size_t size) {
 }
 
 void socketClient::sendSessionStart() {
-  char startBuf[] = {SESSION_START};
-  write(startBuf, sizeof(char));
+  char __buffer [512];
+  void* buffer = (void*) __buffer;
+  uint64_t currTime = nanos();
+  char tagBuf = SESSION_START;
+  size_t position = 0;
+
+  memcpy(buffer+position, &tagBuf, sizeof(char));
+  position += sizeof(char);
+
+  memcpy(buffer+position, &currTime, sizeof(uint64_t));
+  position += sizeof(uint64_t);
+
+  write(buffer, position);
 }
 
 void socketClient::sendSessionEnd() {
-  char endBuf[] = {SESSION_END};
-  write(endBuf, sizeof(char));
+  char __buffer [512];
+  void* buffer = (void*) __buffer;
+  uint64_t currTime = nanos();
+  char tagBuf = SESSION_END;
+  size_t position = 0;
+
+  memcpy(buffer+position, &tagBuf, sizeof(char));
+  position += sizeof(char);
+
+  memcpy(buffer+position, &currTime, sizeof(uint64_t));
+  position += sizeof(uint64_t);
+
+  write(buffer, position);
 }
 
 void socketClient::sendTag(std::string tagName) {

@@ -57,11 +57,11 @@ class socketServer {
 
   // This does the things needed at a session start such as starting
   // the meter and taking the first timestamp.
-  void handleSessionStart();
+  void handleSessionStart(int readSocket);
 
   // This does the things needed at the end of a session such as
   // stopping the meter and dumping the timestamps and meter readings to a file.
-  void handleSessionEnd();
+  void handleSessionEnd(int readSocket);
 
   // This marks the timestamp and string of a tag that has been
   // received.

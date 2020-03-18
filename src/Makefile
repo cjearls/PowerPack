@@ -63,4 +63,4 @@ timeutils.o: timeutils.h
 
 .PHONY: clean
 clean:
-	rm -f *.o valgrind.log %1 core clientexample serverexample testsockets
+	rm -f *.o *.so valgrind.log %1 core clientexample serverexample testsockets

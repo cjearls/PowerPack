@@ -46,10 +46,13 @@
  *
  *********************************************************************/
 
-#define NUM_CHANNELS 2 //number of channels used on chassis
+#define NUM_CHANNELS 18 //number of channels used on chassis
 #define NUM_SAMPLES 40 //num samples per callback
 #define BUFFER_SIZE NUM_SAMPLES * NUM_CHANNELS
 #define ERRBUFF 2048
+
+//TODO: DETERMINE ACCURACY OF THIS CONSTANTS
+#define NIDAQ_CHAN_RESISTOR 0.003 //currently don't know what this is for..
 
 #define DAQmxErrChk(functionCall)          \
   if (DAQmxFailed(error = (functionCall))) \
@@ -63,6 +66,7 @@ int32 CVICALLBACK DoneCallback(TaskHandle taskHandle, int32 status,
 int32 CVICALLBACK EveryNCallback(TaskHandle taskHandle,
                                  int32 everyNsamplesEventType, uInt32 nSamples,
                                  void *callbackData);
+void nidaq_diff_volt_to_power(float64 *ChanReading, int num_chan);
 
 class NIDAQmxEventHandler : public eventHandler {
  public:
@@ -79,6 +83,7 @@ class NIDAQmxEventHandler : public eventHandler {
   TaskHandle taskHandle;
   bool stopFlag = false;
   std::string logfilePath;
+  
 };
 
 #endif

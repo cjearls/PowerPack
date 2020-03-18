@@ -111,6 +111,8 @@ void socketServer::handleSessionStart(int readSocket) {
   uint64_t timestamp;
   read(readSocket, &timestamp, sizeof(uint64_t));
   timestamps.emplace_back("Starting Session...", timestamp);
+  char response = HANDSHAKE_OK;
+  write(readSocket, &response, sizeof(char));
 }
 
 void socketServer::handleSessionEnd(int readSocket) {
@@ -204,6 +206,15 @@ void socketClient::sendSessionStart() {
   position += sizeof(uint64_t);
 
   write(buffer, position);
+
+  char response;
+  readData(&response, sizeof(char));
+
+  if(response != HANDSHAKE_OK) {
+    std::cerr << "Handshake with server failed!" << std::endl;
+    exit(-1);
+  }
+  std::cout << "Handshake OK!" << std::endl;
 }
 
 void socketClient::sendSessionEnd() {

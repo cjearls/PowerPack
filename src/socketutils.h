@@ -23,6 +23,7 @@
 #define SESSION_START 0
 #define SESSION_END 1
 #define SESSION_TAG 2
+#define HANDSHAKE_OK 3
 
 class socketServer {
  public:
@@ -43,7 +44,7 @@ class socketServer {
   sockaddr_in address;
 
   // This stores a list of timestamps and their identifying strings.
-  std::vector<std::pair<std::string, u_int64_t>> timestamps;
+  std::vector<std::pair<std::string, uint64_t>> timestamps;
 
   // This is a wrapper for socket read that stores the data in the given buffer.
   void readData(int socketFD, void* buf, size_t size);

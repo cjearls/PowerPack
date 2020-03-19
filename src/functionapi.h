@@ -3,7 +3,9 @@
 
 #include <fstream>
 #include <iostream>
+#include <sstream>
 #include <string>
+#include <unordered_map>
 #include <utility>
 #include "socketutils.h"
 /*
@@ -15,15 +17,30 @@
 
 socketServer initializeMeterServer(int portNumber, eventHandler *handler);
 void closeMeterServer();
-int readServerConfig(std::string configFilePath);
 
-socketClient initializeFunctionClient(
-    std::pair<int, std::string> clientNetworkInfo);
+socketClient initializeFunctionClient(int port, std::string serverAddress);
 void closeFunctionClient();
-void issueTag(std::string tagName);
-std::pair<int, std::string> readClientConfig(std::string configFilePath);
 
-bool isSubString(std::string inputString, std::string subString);
-std::string extractConfigValue(std::string inputString);
+// Create a list of key_value pair from an input config file
+std::unordered_map<std::string, std::string> createConfigurationMap(
+    std::string configPath);
+
+// Turn a string into a key-value pair at the delimiter
+std::pair<std::string, std::string> findPair(std::string inputString,
+                                             char delimiter);
+
+// Wrapper class for an unordered map of configuration values
+class Configuration {
+ public:
+  std::unordered_map<std::string, std::string> map;
+  Configuration(std::string configFile);
+  ~Configuration();
+
+  // Get a value corresponding to a given key
+  std::string get(std::string key);
+
+  // Print all key-value pairs
+  std::string toString();
+};
 
 #endif

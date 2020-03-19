@@ -2,22 +2,21 @@
 #include <iostream>
 
 NIDAQmxEventHandler::NIDAQmxEventHandler(void){};
-NIDAQmxEventHandler::~NIDAQmxEventHandler(void){ writer.close(); };
+NIDAQmxEventHandler::~NIDAQmxEventHandler(void) { writer.close(); };
 
 NIDAQmxEventHandler::NIDAQmxEventHandler(std::string logFilePath) {
   logFile = logFilePath;
-  std::cout << logFile << std::endl;
-  writer = std::fstream(logFile, std::fstream::out);
+  // std::cout << logFile << std::endl;
+  writer.open(logFile, std::fstream::out);
 }
 
 // TODO: DETERMINE ACCURACY OF THESE CONSTANTS
 // coresponds to ATX 24-pin (maybe..?)
 float64 nidaq_chan_volts[] = {
-    3.3,    3.3,   5.00, 5.00,
-    12.00,  12.00, 3.3,  3.3, /* NIDAQ1 MOD1 channel 0-7 */
-    -12.00, 5.00,  5.00, 5.00, /* NIDAQ1 MOD1 channel 16-19 */
-    12.0,1.0,12.0,12.0,12.0,12.0
-};
+    3.3,    3.3,  5.00, 5.00, 12.00, 12.00,
+    3.3,    3.3,              /* NIDAQ1 MOD1 channel 0-7 */
+    -12.00, 5.00, 5.00, 5.00, /* NIDAQ1 MOD1 channel 16-19 */
+    12.0,   1.0,  12.0, 12.0, 12.0,  12.0};
 
 void NIDAQmxEventHandler::startHandler(uint64_t timestamp) {
   timestamps.emplace_back("Starting Session...", timestamp);
@@ -38,16 +37,16 @@ void NIDAQmxEventHandler::startHandler(uint64_t timestamp) {
   /*********************************************/
   DAQmxErrChk(DAQmxCreateTask("", &taskHandle));
 
-  DAQmxErrChk(DAQmxCreateAIVoltageChan(
-      taskHandle, CHANNEL_DESCRIPTION, "",
-      DAQmx_Val_Cfg_Default, -10.0, 10.0, DAQmx_Val_Volts, NULL));
+  DAQmxErrChk(DAQmxCreateAIVoltageChan(taskHandle, CHANNEL_DESCRIPTION, "",
+                                       DAQmx_Val_Cfg_Default, -10.0, 10.0,
+                                       DAQmx_Val_Volts, NULL));
 
   DAQmxErrChk(DAQmxCfgSampClkTiming(taskHandle, NULL, 1000.0, DAQmx_Val_Rising,
                                     DAQmx_Val_ContSamps, 16000));
 
   DAQmxErrChk(DAQmxRegisterEveryNSamplesEvent(
       taskHandle, DAQmx_Val_Acquired_Into_Buffer, SAMPLE_RATE, 0,
-      EveryNCallback, (void*)this));
+      EveryNCallback, (void *)this));
 
   DAQmxErrChk(DAQmxRegisterDoneEvent(taskHandle, 0, DoneCallback, NULL));
 
@@ -72,12 +71,11 @@ void NIDAQmxEventHandler::endHandler(uint64_t timestamp) {
   DAQmxStopTask(taskHandle);
   DAQmxClearTask(taskHandle);
 
-  //print timestamps
+  // print timestamps
   writer << std::endl;
-  for(auto& entry : timestamps){
-      writer << entry.second << "\t" << entry.first << std::endl;
+  for (auto &entry : timestamps) {
+    writer << entry.second << "\t" << entry.first << std::endl;
   }
-
 }
 
 int32 CVICALLBACK EveryNCallback(TaskHandle taskHandle,
@@ -89,7 +87,7 @@ int32 CVICALLBACK EveryNCallback(TaskHandle taskHandle,
   float64 data[BUFFER_SIZE];
   std::string dataString;
   float64 channels[NUM_CHANNELS];
-  NIDAQmxEventHandler* handler = (NIDAQmxEventHandler*) callbackData;
+  NIDAQmxEventHandler *handler = (NIDAQmxEventHandler *)callbackData;
   /*********************************************/
   // DAQmx Read Code
   /*********************************************/

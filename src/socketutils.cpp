@@ -8,7 +8,6 @@ void printError(std::string errorMsg) {
 
 socketServer::socketServer(int portNumber, eventHandler *handler) {
   socketServer::handler = handler;
-  std::cerr << portNumber;
 
   // This causes the connection to be IPv4.
   address.sin_family = AF_INET;

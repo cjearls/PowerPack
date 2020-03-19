@@ -8,8 +8,14 @@ int main(int argc, char** argv) {
   eventHandler* handler;
   handler = &niHandler;
 
+  Configuration configuration = Configuration(configFile);
+
+  int port = stoi(configuration.get("port"), nullptr, 10);
+
+  std::cout << configuration.toString();
+
   socketServer server =
-      initializeMeterServer(readServerConfig(configFile), handler);
+     initializeMeterServer(port , handler);
   server.listenForClient();
 
   return 0;

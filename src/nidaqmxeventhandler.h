@@ -49,7 +49,7 @@
 #define NUM_CHANNELS 18 //number of channels used on chassis
 #define SAMPLE_RATE 40 //number of samples per callback
 #define BUFFER_SIZE SAMPLE_RATE * NUM_CHANNELS //buffer size needed to hold all data from a single callback
-#define ERRBUFF 2048
+#define ERRBUFF_SIZE 2048
 #define CHANNEL_DESCRIPTION "cDAQ1Mod8/ai0:7,cDAQ1Mod8/ai16:19,cDAQ1Mod3/ai0:5"
 
 //TODO: DETERMINE ACCURACY OF THIS CONSTANTS
@@ -71,6 +71,7 @@ void nidaqDiffVoltToPower(float64 *ChanReading, int num_chan);
 
 class NIDAQmxEventHandler : public eventHandler {
  public:
+  int32 totalSamplesRead = 0;
   NIDAQmxEventHandler(void);
   NIDAQmxEventHandler(std::string logFilePath);
   virtual ~NIDAQmxEventHandler();
@@ -82,7 +83,7 @@ class NIDAQmxEventHandler : public eventHandler {
 
  private:
   TaskHandle taskHandle;
-  static int totalSamplesRead;
+  
 
 };
 

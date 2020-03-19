@@ -2,11 +2,12 @@
 #include <iostream>
 
 NIDAQmxEventHandler::NIDAQmxEventHandler(void){};
-NIDAQmxEventHandler::~NIDAQmxEventHandler(void){};
+NIDAQmxEventHandler::~NIDAQmxEventHandler(void){ writer.close(); };
 
 NIDAQmxEventHandler::NIDAQmxEventHandler(std::string logFilePath) {
   logFile = logFilePath;
-  writer = fstream(logFile);
+  std::cout << logFile << std::endl;
+  writer = std::fstream(logFile, std::fstream::out);
 }
 
 // TODO: DETERMINE ACCURACY OF THESE CONSTANTS
@@ -18,20 +19,19 @@ float64 nidaq_chan_volts[] = {
     12.0,1.0,12.0,12.0,12.0,12.0
 };
 
-void NIDAQmxEventHandler::startHandler() {
-  std::cout << "Event Handler: Starting...\n";
+void NIDAQmxEventHandler::startHandler(uint64_t timestamp) {
   timestamps.emplace_back("Starting Session...", timestamp);
 
-  writer << CHANNEL_DESCRIPTION << std::endl;
-  writer << "START TIME: " << timestamps.front().second() << std::endl;
+  writer << "CHANNEL DESCRIPTION: " << CHANNEL_DESCRIPTION << std::endl;
+  writer << "START TIME: " << timestamps[0].second << std::endl;
   writer << "NUMBER OF CHANNELS: " << NUM_CHANNELS << std::endl;
-  writer << "SAMPLES TAKEN: " << totalSamplesRead << std::endl;
   writer << "SAMPLE RATE: " << SAMPLE_RATE << std::endl;
   writer << "NUMBER OF TIMESTAMPS: " << timestamps.size() << std::endl;
+  writer << std::endl;
 
   int32 error = 0;
   taskHandle = 0;
-  char errBuff[ERRBUFF] = {'\0'};
+  char errBuff[ERRBUFF_SIZE] = {'\0'};
 
   /*********************************************/
   // DAQmx Configure Code
@@ -47,7 +47,7 @@ void NIDAQmxEventHandler::startHandler() {
 
   DAQmxErrChk(DAQmxRegisterEveryNSamplesEvent(
       taskHandle, DAQmx_Val_Acquired_Into_Buffer, SAMPLE_RATE, 0,
-      EveryNCallback, NULL));
+      EveryNCallback, (void*)this));
 
   DAQmxErrChk(DAQmxRegisterDoneEvent(taskHandle, 0, DoneCallback, NULL));
 
@@ -58,24 +58,24 @@ void NIDAQmxEventHandler::startHandler() {
 
 Error:
   if (DAQmxFailed(error)) {
-    DAQmxGetExtendedErrorInfo(errBuff, ERRBUFF);
+    DAQmxGetExtendedErrorInfo(errBuff, ERRBUFF_SIZE);
     printf("DAQmx Error: %s\n", errBuff);
   }
 }
 
 void NIDAQmxEventHandler::tagHandler(uint64_t timestamp, std::string tag) {
-  std::cout << "Event Handler: Tag" << std::endl;
   timestamps.emplace_back(tag, timestamp);
 }
 
 void NIDAQmxEventHandler::endHandler(uint64_t timestamp) {
   timestamps.emplace_back("Ending Session...", timestamp);
-  std::cout << "Event Handler: Ending Session..." << std::endl;
   DAQmxStopTask(taskHandle);
   DAQmxClearTask(taskHandle);
 
+  //print timestamps
+  writer << std::endl;
   for(auto& entry : timestamps){
-      writer << entry.second() << "\t" << entry.first() << std::endl;
+      writer << entry.second << "\t" << entry.first << std::endl;
   }
 
 }
@@ -89,6 +89,7 @@ int32 CVICALLBACK EveryNCallback(TaskHandle taskHandle,
   float64 data[BUFFER_SIZE];
   std::string dataString;
   float64 channels[NUM_CHANNELS];
+  NIDAQmxEventHandler* handler = (NIDAQmxEventHandler*) callbackData;
   /*********************************************/
   // DAQmx Read Code
   /*********************************************/
@@ -107,7 +108,7 @@ int32 CVICALLBACK EveryNCallback(TaskHandle taskHandle,
 
   if (samplesRead > 0) {
     printf("Acquired %d samples. Total %d\r", (int)samplesRead,
-           (int)(totalSamplesRead += samplesRead));
+           (int)(handler->totalSamplesRead += samplesRead));
     fflush(stdout);
   }
 
@@ -115,13 +116,13 @@ int32 CVICALLBACK EveryNCallback(TaskHandle taskHandle,
     dataString += std::to_string(data[index]) + " ";
   }
 
-  writer << dataString << std::endl;
-  nidaq_diff_volt_to_power(channels, NUM_CHANNELS);
+  handler->writer << dataString << std::endl;
+  nidaqDiffVoltToPower(channels, NUM_CHANNELS);
 
 Error:
   if (DAQmxFailed(error)) {
     // Get and print error information
-    DAQmxGetExtendedErrorInfo(errBuff, ERRBUFF);
+    DAQmxGetExtendedErrorInfo(errBuff, ERRBUFF_SIZE);
 
     /*********************************************/
     // DAQmx Stop Code
@@ -154,16 +155,16 @@ void nidaqDiffVoltToPower(float64 *ChanReading, int num_chan) {
   int i;
   float64 milli_powers[num_chan];
 
-  std::cout << "ChanReading" << std::endl;
-  for (int i = 0; i < NUM_CHANNELS; i++) {
-    std::cout << i << ": " << ChanReading[i] << std::endl;
-  }
+  // std::cout << "ChanReading" << std::endl;
+  // for (int i = 0; i < NUM_CHANNELS; i++) {
+  //   std::cout << i << ": " << ChanReading[i] << std::endl;
+  // }
 
-  std::cout << "Stupid Nums" << std::endl;
+  // std::cout << "Stupid Nums" << std::endl;
   for (i = 0; i < num_chan; i++) {
     milli_powers[i] = (ChanReading[i] / NIDAQ_CHAN_RESISTOR) *
                       (nidaq_chan_volts[i] - ChanReading[i]);
-    std::cout << i << ": " << milli_powers[i] << std::endl;
+    // std::cout << i << ": " << milli_powers[i] << std::endl;
   }
-  std::cout << std::endl;
+  // std::cout << std::endl;
 }

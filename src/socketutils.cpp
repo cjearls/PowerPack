@@ -121,12 +121,6 @@ void socketServer::handleSessionEnd(int readSocket) {
 
   socketServer::handler->endHandler(timestamp);
 
-  // TODO: dump to a file instead of to cout
-  for (size_t index = 0; index < timestamps.size(); index++) {
-    std::cout << "Tag: \"" << timestamps[index].first << "\": "
-              << timestamps[index].second - timestamps[0].second
-              << " nanoseconds after progam start.\n";
-  }
 }
 
 void socketServer::handleTag(int socketFD) {
@@ -145,7 +139,7 @@ void socketServer::handleTag(int socketFD) {
   uint64_t timestamp;
   readData(socketFD, &timestamp, sizeof(uint64_t));
 
-  socketServer::handler->tagHandler(timestamp, message)
+  socketServer::handler->tagHandler(timestamp, message);
 
   free(message);
 }
@@ -183,7 +177,7 @@ void socketClient::readData(void *buf, size_t size) {
   }
 }
 
-void socketClient::write( void *buf, size_t size) {
+void socketClient::writeData( void *buf, size_t size) {
   int bytesSent;
 
   if ((bytesSent = send(sock, buf, size, 0))  <= 0 ) {
@@ -206,7 +200,7 @@ void socketClient::sendSessionStart() {
   memcpy(buffer+position, &currTime, sizeof(uint64_t));
   position += sizeof(uint64_t);
 
-  write(buffer, position);
+  writeData(buffer, position);
 
   char response;
   readData(&response, sizeof(char));
@@ -231,7 +225,7 @@ void socketClient::sendSessionEnd() {
   memcpy(buffer+position, &currTime, sizeof(uint64_t));
   position += sizeof(uint64_t);
 
-  write(buffer, position);
+  writeData(buffer, position);
 }
 
 void socketClient::sendTag(std::string tagName) {
@@ -254,5 +248,5 @@ void socketClient::sendTag(std::string tagName) {
   memcpy(buffer+position, &currTime, sizeof(uint64_t));
   position += sizeof(uint64_t);
 
-  write(buffer, position);
+  writeData(buffer, position);
 }

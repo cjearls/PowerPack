@@ -43,14 +43,11 @@ class socketServer {
   // This stores information about the server that is being connected to.
   sockaddr_in address;
 
-  // This stores a list of timestamps and their identifying strings.
-  std::vector<std::pair<std::string, uint64_t>> timestamps;
-
   // This is a wrapper for socket read that stores the data in the given buffer.
   void readData(int socketFD, void* buf, size_t size);
 
   // This is a wrapper for socket write that sends data from the given buffer.
-  void write(int socketFD, void* buf, size_t size);
+  void writeData(int socketFD, void* buf, size_t size);
 
   // This function interprets the data received in listenForClient() and calls
   // the correct function to handle the communication.`
@@ -96,7 +93,7 @@ class socketClient {
   void readData(void* buf, size_t size);
 
   // This is a wrapper for socket write that sends data from the given buffer.
-  void write(void* buf, size_t size);
+  void writeData(void* buf, size_t size);
 };
 
 // This function prints an error message, prints the last errorno, and exits the

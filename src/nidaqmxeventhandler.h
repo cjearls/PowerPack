@@ -47,9 +47,10 @@
  *********************************************************************/
 
 #define NUM_CHANNELS 18 //number of channels used on chassis
-#define NUM_SAMPLES 40 //num samples per callback
-#define BUFFER_SIZE NUM_SAMPLES * NUM_CHANNELS
+#define SAMPLE_RATE 40 //number of samples per callback
+#define BUFFER_SIZE SAMPLE_RATE * NUM_CHANNELS //buffer size needed to hold all data from a single callback
 #define ERRBUFF 2048
+#define CHANNEL_DESCRIPTION "cDAQ1Mod8/ai0:7,cDAQ1Mod8/ai16:19,cDAQ1Mod3/ai0:5"
 
 //TODO: DETERMINE ACCURACY OF THIS CONSTANTS
 #define NIDAQ_CHAN_RESISTOR 0.003 //currently don't know what this is for..
@@ -66,24 +67,23 @@ int32 CVICALLBACK DoneCallback(TaskHandle taskHandle, int32 status,
 int32 CVICALLBACK EveryNCallback(TaskHandle taskHandle,
                                  int32 everyNsamplesEventType, uInt32 nSamples,
                                  void *callbackData);
-void nidaq_diff_volt_to_power(float64 *ChanReading, int num_chan);
+void nidaqDiffVoltToPower(float64 *ChanReading, int num_chan);
 
 class NIDAQmxEventHandler : public eventHandler {
  public:
   NIDAQmxEventHandler(void);
   NIDAQmxEventHandler(std::string logFilePath);
   virtual ~NIDAQmxEventHandler();
-  
 
-  void startHandler();
-  void tagHandler();
-  void endHandler();
+
+  void startHandler(uint64_t timestamp);
+  void tagHandler(uint64_t timestamp, std::string tag);
+  void endHandler(uint64_t timestamp);
 
  private:
   TaskHandle taskHandle;
-  bool stopFlag = false;
-  std::string logfilePath;
-  
+  static int totalSamplesRead;
+
 };
 
 #endif

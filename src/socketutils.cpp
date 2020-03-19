@@ -5,6 +5,7 @@ void printError(std::string errorMsg) {
   exit(EXIT_FAILURE);
 }
 
+
 socketServer::socketServer(int portNumber, eventHandler *handler) {
   socketServer::handler = handler;
   std::cerr << portNumber;
@@ -28,7 +29,7 @@ socketServer::socketServer(int portNumber, eventHandler *handler) {
                  sizeof(opt))) {
     printError("Server failed to set socket options\n");
   }
-  
+
   // This binds the socket to the given address details.
   if (bind(sock, (sockaddr *)&address, sizeof(address)) < 0) {
     printError("Server failed to bind to socket\n");
@@ -51,7 +52,7 @@ void socketServer::readData(int socketFD, void *buf, size_t size) {
   }while(to_read);
 }
 
-void socketServer::write(int socketFD, void *buf, size_t size) {
+void socketServer::writeData(int socketFD, void *buf, size_t size) {
   size_t bytesSent;
   if ((bytesSent = send(socketFD, buf, size, 0)) < size) {
     printError("Server failed to completely send on socket. Server sent " +
@@ -104,31 +105,28 @@ int socketServer::handleClientConnection(int readSocket) {
 }
 
 void socketServer::handleSessionStart(int readSocket) {
-  
-  // TODO: start the meter
-  socketServer::handler->startHandler();
 
   uint64_t timestamp;
   read(readSocket, &timestamp, sizeof(uint64_t));
-  timestamps.emplace_back("Starting Session...", timestamp);
+
+  socketServer::handler->startHandler(timestamp);
+
   char response = HANDSHAKE_OK;
-  write(readSocket, &response, sizeof(char));
+  writeData(readSocket, &response, sizeof(char));
 }
 
 void socketServer::handleSessionEnd(int readSocket) {
   uint64_t timestamp;
   read(readSocket, &timestamp, sizeof(uint64_t));
-  timestamps.emplace_back("Ending Session...", timestamp);
-  // TODO: stop the meter
 
-socketServer::handler->endHandler();
+  socketServer::handler->endHandler(timestamp);
 
   // TODO: dump to a file instead of to cout
   for (size_t index = 0; index < timestamps.size(); index++) {
-    std::cout << "Tag: \"" << timestamps[index].first << "\": " 
+    std::cout << "Tag: \"" << timestamps[index].first << "\": "
               << timestamps[index].second - timestamps[0].second
               << " nanoseconds after progam start.\n";
-  }  
+  }
 }
 
 void socketServer::handleTag(int socketFD) {
@@ -140,18 +138,21 @@ void socketServer::handleTag(int socketFD) {
   readData(socketFD, &tagSize, sizeof(size_t));
 
   // This receives the tag string from the client.
-  char* msgBuffer = (char*)calloc(tagSize, sizeof(char));
-  readData(socketFD, msgBuffer, tagSize);
+  char* message = (char*)calloc(tagSize, sizeof(char));
+  readData(socketFD, message, tagSize);
 
-  uint64_t currTime;
-  readData(socketFD, &currTime, sizeof(uint64_t));
+  // Receive timestamp
+  uint64_t timestamp;
+  readData(socketFD, &timestamp, sizeof(uint64_t));
 
-  // The correct tag is given to the timestamp.
-  timestamps.emplace_back(msgBuffer, currTime);
+  socketServer::handler->tagHandler(timestamp, message)
 
-  free(msgBuffer);
-  socketServer::handler->tagHandler();
+  free(message);
 }
+
+
+//####################################################################
+
 
 socketClient::socketClient(int portNumber, std::string serverIP) {
   // This sets the socket to IPv4 and to the port number given.

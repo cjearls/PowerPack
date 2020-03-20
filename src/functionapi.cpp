@@ -1,11 +1,11 @@
 #include "functionapi.h"
 
-socketServer initializeMeterServer(int portNumber, eventHandler* handler) {
+socketServer initializeMeterServer(uint16_t portNumber, eventHandler* handler) {
   socketServer server(portNumber, handler);
   return server;
 }
 
-socketClient initializeFunctionClient(int port, std::string serverAddress) {
+socketClient initializeFunctionClient(uint16_t port, std::string serverAddress) {
   socketClient client(port, serverAddress);
   return client;
 }
@@ -14,7 +14,7 @@ Configuration::Configuration(std::string configFile) {
   map = createConfigurationMap(configFile);
 }
 
-Configuration::~Configuration(){};
+Configuration::~Configuration(){}
 
 std::string Configuration::get(std::string key) {
   if (map.find(key) == map.end()) {
@@ -58,7 +58,7 @@ std::unordered_map<std::string, std::string> createConfigurationMap(
     getline(configFileStream, tempString);
 
     // skip lines that are empty or begin with '!'
-    if (!tempString.length() || *(tempString.begin()) == '!') {
+    if (!tempString.length() || *(tempString.begin()) == '#') {
       continue;
     }
 
@@ -81,7 +81,7 @@ std::unordered_map<std::string, std::string> createConfigurationMap(
 
 std::pair<std::string, std::string> findPair(std::string inputString,
                                              char delimiter) {
-  int delimiterPosition;
+  size_t delimiterPosition;
   std::string key;
   std::string value;
 
@@ -103,4 +103,25 @@ std::pair<std::string, std::string> findPair(std::string inputString,
   }
 
   return std::make_pair(key, value);
+}
+
+//parse a list of doubles into an array
+double* stringToDoubleArray(std::string str){
+  // the double are first stored in a vactor b/c the vector
+  // can dynamically resize
+  std::vector<double> vec;
+  size_t idx = 0; //index in origin string
+  size_t tmp; //index relative to substring
+
+  // parse doubles until empty
+  while(idx < str.size()){
+    vec.push_back(std::stod(str.substr(idx), &tmp));
+    idx += tmp;
+  }
+
+  //copy the results into an array
+  double* arr = new double[vec.size()];
+  std::copy(vec.begin(),vec.end(), arr);
+
+  return arr;
 }

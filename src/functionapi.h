@@ -7,6 +7,7 @@
 #include <string>
 #include <unordered_map>
 #include <utility>
+#include <vector>
 #include "socketutils.h"
 /*
  * API For users who want to generate a power profile for their functions
@@ -15,10 +16,10 @@
  * Server handles data collection via ni-meter and
  */
 
-socketServer initializeMeterServer(int portNumber, eventHandler *handler);
+socketServer initializeMeterServer(uint16_t portNumber, eventHandler* handler);
 void closeMeterServer();
 
-socketClient initializeFunctionClient(int port, std::string serverAddress);
+socketClient initializeFunctionClient(uint16_t port, std::string serverAddress);
 void closeFunctionClient();
 
 // Create a list of key_value pair from an input config file
@@ -28,6 +29,8 @@ std::unordered_map<std::string, std::string> createConfigurationMap(
 // Turn a string into a key-value pair at the delimiter
 std::pair<std::string, std::string> findPair(std::string inputString,
                                              char delimiter);
+
+double* stringToDoubleArray(std::string str);
 
 // Wrapper class for an unordered map of configuration values
 class Configuration {

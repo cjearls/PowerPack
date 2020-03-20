@@ -4,8 +4,8 @@
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <netinet/in.h>
-#include <sys/socket.h>
 #include <sys/ioctl.h>
+#include <sys/socket.h>
 #include <sys/uio.h>
 #include <unistd.h>
 #include <cerrno>
@@ -15,8 +15,8 @@
 #include <string>
 #include <utility>
 #include <vector>
-#include "timeutils.h"
 #include "eventhandler.h"
+#include "timeutils.h"
 
 // CONTROL MESSAGE MACROS
 
@@ -27,7 +27,7 @@
 
 class socketServer {
  public:
-  socketServer(int portNumber, eventHandler *handler);
+  socketServer(uint16_t portNumber, eventHandler* handler);
 
   ~socketServer();
 
@@ -38,7 +38,7 @@ class socketServer {
  private:
   // This is the file descriptor of the socket.
   int sock;
-  eventHandler *handler;
+  eventHandler* handler;
 
   // This stores information about the server that is being connected to.
   sockaddr_in address;
@@ -68,7 +68,7 @@ class socketServer {
 
 class socketClient {
  public:
-  socketClient(int portNumber, std::string serverIP);
+  socketClient(uint16_t portNumber, std::string serverIP);
 
   ~socketClient();
 

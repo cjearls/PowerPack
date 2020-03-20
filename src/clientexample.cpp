@@ -4,7 +4,7 @@
 int clientThread(std::string configFile) {
   Configuration configuration = Configuration(configFile);
 
-  int port = stoi(configuration.get("port"), nullptr, 10);
+  uint16_t port = stoi(configuration.get("port"), nullptr, 10);
   std::string serverAddress = configuration.get("serveraddress");
 
   std::cout << configuration.toString();
@@ -58,6 +58,12 @@ int clientThread(std::string configFile) {
 }
 
 int main(int argc, char** argv) {
+
+  if (argc != 3) {
+    std::cerr << "Usage: " << argv[0] << " <config file> <output file>"
+              << std::endl;
+    exit(EXIT_FAILURE);
+  }
   std::string configFile(argv[1]);
 
   std::thread runHandler(clientThread, configFile);

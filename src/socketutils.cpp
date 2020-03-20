@@ -5,9 +5,8 @@ void printError(std::string errorMsg) {
   exit(EXIT_FAILURE);
 }
 
-
-socketServer::socketServer(int portNumber, eventHandler *handler) {
-  socketServer::handler = handler;
+socketServer::socketServer(uint16_t portNumber, eventHandler *eventHandler) {
+  handler = eventHandler;
 
   // This causes the connection to be IPv4.
   address.sin_family = AF_INET;
@@ -38,21 +37,21 @@ socketServer::socketServer(int portNumber, eventHandler *handler) {
 socketServer::~socketServer() { close(sock); }
 
 void socketServer::readData(int socketFD, void *buf, size_t size) {
-  int* tmp = (int*)buf;
+  int *tmp = (int *)buf;
   size_t to_read = size;
-  size_t numRead = 0;
-  do{
-    if ( (numRead = read(socketFD, tmp, to_read) ) == -1) {
+  ssize_t numRead = 0;
+  do {
+    if ((numRead = read(socketFD, tmp, to_read)) == -1) {
       printError(
           "Server failed to completely read from the socket with errorno: ");
     }
     to_read -= numRead;
     tmp += numRead;
-  }while(to_read);
+  } while (to_read);
 }
 
 void socketServer::writeData(int socketFD, void *buf, size_t size) {
-  size_t bytesSent;
+  ssize_t bytesSent;
   if ((bytesSent = send(socketFD, buf, size, 0)) < size) {
     printError("Server failed to completely send on socket. Server sent " +
                std::to_string(bytesSent) + " bytes, but was expected to send " +
@@ -63,14 +62,14 @@ void socketServer::writeData(int socketFD, void *buf, size_t size) {
 void socketServer::listenForClient() {
   socklen_t clientLength;
   int readSocket;
-  int iMode = 1;
 
   if (listen(sock, 2) == -1) {
     printError("Server failed to listen on socket");
   }
 
   clientLength = sizeof(address);
-  if ((readSocket = accept(sock, (sockaddr *)&address, (socklen_t*)&clientLength)) == -1) {
+  if ((readSocket = accept(sock, (sockaddr *)&address,
+                           &clientLength)) == -1) {
     printError("Error, the accept failed with errno: ");
   }
   // Once the connection has been accepted, keep reading until
@@ -104,7 +103,6 @@ int socketServer::handleClientConnection(int readSocket) {
 }
 
 void socketServer::handleSessionStart(int readSocket) {
-
   uint64_t timestamp;
   read(readSocket, &timestamp, sizeof(uint64_t));
 
@@ -119,7 +117,6 @@ void socketServer::handleSessionEnd(int readSocket) {
   read(readSocket, &timestamp, sizeof(uint64_t));
 
   socketServer::handler->endHandler(timestamp);
-
 }
 
 void socketServer::handleTag(int socketFD) {
@@ -131,7 +128,7 @@ void socketServer::handleTag(int socketFD) {
   readData(socketFD, &tagSize, sizeof(size_t));
 
   // This receives the tag string from the client.
-  char* message = (char*)calloc(tagSize, sizeof(char));
+  char *message = (char *)calloc(tagSize, sizeof(char));
   readData(socketFD, message, tagSize);
 
   // Receive timestamp
@@ -143,11 +140,9 @@ void socketServer::handleTag(int socketFD) {
   free(message);
 }
 
-
 //####################################################################
 
-
-socketClient::socketClient(int portNumber, std::string serverIP) {
+socketClient::socketClient(uint16_t portNumber, std::string serverIP) {
   // This sets the socket to IPv4 and to the port number given.
   serverAddress.sin_family = AF_INET;
   serverAddress.sin_port = htons(portNumber);
@@ -176,10 +171,10 @@ void socketClient::readData(void *buf, size_t size) {
   }
 }
 
-void socketClient::writeData( void *buf, size_t size) {
+void socketClient::writeData(void *buf, size_t size) {
   int bytesSent;
 
-  if ((bytesSent = send(sock, buf, size, 0))  <= 0 ) {
+  if ((bytesSent = send(sock, buf, size, 0)) <= 0) {
     printError("Client failed to completely send on socket. Client sent " +
                std::to_string(bytesSent) + " bytes, but expected to send " +
                std::to_string(size) + " bytes: ");
@@ -187,16 +182,15 @@ void socketClient::writeData( void *buf, size_t size) {
 }
 
 void socketClient::sendSessionStart() {
-  char __buffer [512];
-  void* buffer = (void*) __buffer;
+  char buffer[512];
   uint64_t currTime = nanos();
   char tagBuf = SESSION_START;
   size_t position = 0;
 
-  memcpy(buffer+position, &tagBuf, sizeof(char));
+  memcpy(buffer + position, &tagBuf, sizeof(char));
   position += sizeof(char);
 
-  memcpy(buffer+position, &currTime, sizeof(uint64_t));
+  memcpy(buffer + position, &currTime, sizeof(uint64_t));
   position += sizeof(uint64_t);
 
   writeData(buffer, position);
@@ -204,7 +198,7 @@ void socketClient::sendSessionStart() {
   char response;
   readData(&response, sizeof(char));
 
-  if(response != HANDSHAKE_OK) {
+  if (response != HANDSHAKE_OK) {
     std::cerr << "Handshake with server failed!" << std::endl;
     exit(-1);
   }
@@ -212,39 +206,37 @@ void socketClient::sendSessionStart() {
 }
 
 void socketClient::sendSessionEnd() {
-  char __buffer [512];
-  void* buffer = (void*) __buffer;
+  char buffer[512];
   uint64_t currTime = nanos();
   char tagBuf = SESSION_END;
   size_t position = 0;
 
-  memcpy(buffer+position, &tagBuf, sizeof(char));
+  memcpy(buffer + position, &tagBuf, sizeof(char));
   position += sizeof(char);
 
-  memcpy(buffer+position, &currTime, sizeof(uint64_t));
+  memcpy(buffer + position, &currTime, sizeof(uint64_t));
   position += sizeof(uint64_t);
 
   writeData(buffer, position);
 }
 
 void socketClient::sendTag(std::string tagName) {
-  char __buffer [512];
-  void* buffer = (void*) __buffer;
+  char buffer[512];
   uint64_t currTime = nanos();
   char tagBuf = SESSION_TAG;
   size_t position = 0;
   size_t tagSize = tagName.size() + 1;
 
-  memcpy(buffer+position, &tagBuf, sizeof(char));
+  memcpy(buffer + position, &tagBuf, sizeof(char));
   position += sizeof(char);
 
-  memcpy(buffer+position, &tagSize, sizeof(size_t));
+  memcpy(buffer + position, &tagSize, sizeof(size_t));
   position += sizeof(size_t);
 
-  memcpy(buffer+position, tagName.c_str(), tagName.size() + 1);
+  memcpy(buffer + position, tagName.c_str(), tagName.size() + 1);
   position += tagName.size() + 1;
 
-  memcpy(buffer+position, &currTime, sizeof(uint64_t));
+  memcpy(buffer + position, &currTime, sizeof(uint64_t));
   position += sizeof(uint64_t);
 
   writeData(buffer, position);

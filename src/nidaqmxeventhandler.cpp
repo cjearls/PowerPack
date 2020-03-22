@@ -220,7 +220,6 @@ Error:
   return 0;
 }
 
-
 /**
  * Converts voltage differential to power
  *

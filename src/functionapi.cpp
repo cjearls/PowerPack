@@ -35,7 +35,7 @@ std::string Configuration::toString() {
 }
 
 std::unordered_map<std::string, std::string> createConfigurationMap(
-    std::string configPath) {
+  std::string configPath) {
   // Input stream for reading file
   std::ifstream configFileStream;
   // Temporary variable to hold incoming lines

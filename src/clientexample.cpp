@@ -63,12 +63,9 @@ int clientThread(std::string configFile) {
   return 0;
 }
 
-<<<<<<< HEAD
 /**
  * Run client thread
  */ 
-=======
->>>>>>> configuration
 int main(int argc, char** argv) {
 
   if (argc != 3) {

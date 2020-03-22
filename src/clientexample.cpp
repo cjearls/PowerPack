@@ -1,7 +1,12 @@
 #include "functionapi.h"
 #include <thread>
 
-
+/**
+ * Read client config info from configFile and initialize a client. Used as basic test of powerpack functionality
+ * 
+ * @param configFile path
+ * @returns 0 indicating completion with no error
+ */ 
 int clientThread(std::string configFile) {
 
   socketClient client = initializeFunctionClient(readClientConfig(configFile));
@@ -53,7 +58,9 @@ int clientThread(std::string configFile) {
   return 0;
 }
 
-
+/**
+ * Run client thread
+ */ 
 int main(int argc, char** argv) {
   std::string configFile(argv[1]);
 

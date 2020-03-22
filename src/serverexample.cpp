@@ -2,6 +2,10 @@
 #include "functionapi.h"
 #include "nidaqmxeventhandler.h"
 
+
+/**
+ * Read server config info from configFile and initialize a server. Used as basic test of powerpack functionality
+ */ 
 int main(int argc, char** argv) {
   std::string configFile(argv[1]);
   NIDAQmxEventHandler niHandler(argv[2]);

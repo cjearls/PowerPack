@@ -30,7 +30,7 @@
  */
 class socketServer {
  public:
-  socketServer(int portNumber, eventHandler* handler);
+  socketServer(uint16_t portNumber, eventHandler* handler);
 
   ~socketServer();
 
@@ -75,7 +75,7 @@ class socketServer {
  */
 class socketClient {
  public:
-  socketClient(int portNumber, std::string serverIP);
+  socketClient(uint16_t portNumber, std::string serverIP);
 
   ~socketClient();
 

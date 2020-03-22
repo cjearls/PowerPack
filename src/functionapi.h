@@ -3,8 +3,11 @@
 
 #include <fstream>
 #include <iostream>
+#include <sstream>
 #include <string>
+#include <unordered_map>
 #include <utility>
+#include <vector>
 #include "socketutils.h"
 
 /*
@@ -16,30 +19,34 @@
  * TODO: DO WE NEED THIS EXTRA LAYER THOUGH
  */
 
-// initialize the server side of powerpack
-socketServer initializeMeterServer(int portNumber, eventHandler *handler);
-// close meter side of powepack
+socketServer initializeMeterServer(uint16_t portNumber, eventHandler* handler);
 void closeMeterServer();
-// read config file for server parameters
-int readServerConfig(std::string configFilePath);
 
-// initialize the client side of powerpack
-socketClient initializeFunctionClient(
-    std::pair<int, std::string> clientNetworkInfo);
-
-// close client side of powerpack
+socketClient initializeFunctionClient(uint16_t port, std::string serverAddress);
 void closeFunctionClient();
 
-// send tag communicatino from client to server
-void issueTag(std::string tagName);
+// Create a list of key_value pair from an input config file
+std::unordered_map<std::string, std::string> createConfigurationMap(
+    std::string configPath);
 
-// read config file for client parameters
-std::pair<int, std::string> readClientConfig(std::string configFilePath);
+// Turn a string into a key-value pair at the delimiter
+std::pair<std::string, std::string> findPair(std::string inputString,
+                                             char delimiter);
 
-// helper that determines if substring is a substring of inputstring
-bool isSubString(std::string inputString, std::string subString);
+double* stringToDoubleArray(std::string str);
 
-// helper that pulls config values out of input string
-std::string extractConfigValue(std::string inputString);
+// Wrapper class for an unordered map of configuration values
+class Configuration {
+ public:
+  std::unordered_map<std::string, std::string> map;
+  Configuration(std::string configFile);
+  ~Configuration();
+
+  // Get a value corresponding to a given key
+  std::string get(std::string key);
+
+  // Print all key-value pairs
+  std::string toString();
+};
 
 #endif

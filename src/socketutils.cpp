@@ -67,15 +67,17 @@ void socketServer::listenForClient() {
     printError("Server failed to listen on socket");
   }
 
-  clientLength = sizeof(address);
-  if ((readSocket = accept(sock, (sockaddr *)&address,
-                           &clientLength)) == -1) {
-    printError("Error, the accept failed with errno: ");
+  while (!shutdownServer) {
+    clientLength = sizeof(address);
+    if ((readSocket = accept(sock, (sockaddr *)&address, &clientLength)) ==
+        -1) {
+      printError("Error, the accept failed with errno: ");
+    }
+    // Once the connection has been accepted, keep reading until
+    // handleClientConnection() gives an error.
+    while (handleClientConnection(readSocket) == 0)
+      ;
   }
-  // Once the connection has been accepted, keep reading until
-  // handleClientConnection() gives an error.
-  while (handleClientConnection(readSocket) == 0)
-    ;
 }
 
 int socketServer::handleClientConnection(int readSocket) {
@@ -115,7 +117,7 @@ void socketServer::handleSessionStart(int readSocket) {
 void socketServer::handleSessionEnd(int readSocket) {
   uint64_t timestamp;
   read(readSocket, &timestamp, sizeof(uint64_t));
-
+  shutdownServer = true;
   socketServer::handler->endHandler(timestamp);
 }
 
@@ -141,16 +143,12 @@ void socketServer::handleTag(int socketFD) {
 }
 
 //####################################################################
-socketClient::socketClient(){}
+socketClient::socketClient() {}
 
 socketClient::socketClient(uint16_t portNumber, std::string serverIP) {
   // This sets the socket to IPv4 and to the port number given.
   serverAddress.sin_family = AF_INET;
   serverAddress.sin_port = htons(portNumber);
-
-  if ((sock = socket(serverAddress.sin_family, SOCK_STREAM, 0)) < 0) {
-    printError("Client socket creation error\n");
-  }
 
   // This checks the address to be sure it is allowed.
   if (inet_pton(serverAddress.sin_family, serverIP.c_str(),
@@ -159,7 +157,6 @@ socketClient::socketClient(uint16_t portNumber, std::string serverIP) {
   }
 
   // This connects to the server.
-
 }
 
 socketClient::~socketClient() {}
@@ -170,29 +167,25 @@ void socketClient::readData(void *buf, size_t size) {
   }
 }
 
-void socketClient::openSocket(){
-   if (connect(sock, (sockaddr *)&serverAddress, sizeof(serverAddress)) < 0) {
+void socketClient::openSocket() {
+  if ((sock = socket(serverAddress.sin_family, SOCK_STREAM, 0)) < 0) {
+    printError("Client socket creation error\n");
+  }
+  if (connect(sock, (sockaddr *)&serverAddress, sizeof(serverAddress)) < 0) {
     printError("Client connection failed: ");
   }
 }
 
-void socketClient::closeSocket(){
-   close(sock);
-}
-
+void socketClient::closeSocket() { close(sock); }
 
 void socketClient::writeData(void *buf, size_t size) {
   int bytesSent;
-
- 
 
   if ((bytesSent = send(sock, buf, size, 0)) <= 0) {
     printError("Client failed to completely send on socket. Client sent " +
                std::to_string(bytesSent) + " bytes, but expected to send " +
                std::to_string(size) + " bytes: ");
   }
-
-  close(sock);
 }
 
 void socketClient::sendSessionStart() {
@@ -207,9 +200,7 @@ void socketClient::sendSessionStart() {
   memcpy(buffer + position, &currTime, sizeof(uint64_t));
   position += sizeof(uint64_t);
 
-  if (connect(sock, (sockaddr *)&serverAddress, sizeof(serverAddress)) < 0) {
-    printError("Client connection failed: ");
-  }
+  openSocket();
 
   writeData(buffer, position);
 
@@ -222,7 +213,7 @@ void socketClient::sendSessionStart() {
   }
   std::cout << "Handshake OK!" << std::endl;
 
-  close(sock);
+  closeSocket();
 }
 
 void socketClient::sendSessionEnd() {
@@ -238,7 +229,6 @@ void socketClient::sendSessionEnd() {
   position += sizeof(uint64_t);
 
   openSocket();
-
   writeData(buffer, position);
   closeSocket();
 }

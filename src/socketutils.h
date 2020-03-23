@@ -41,6 +41,7 @@ class socketServer {
  private:
   // This is the file descriptor of the socket.
   int sock;
+  bool shutdownServer = false;
   eventHandler* handler;
 
   // This stores information about the server that is being connected to.
@@ -93,7 +94,7 @@ class socketClient {
  private:
   // This is the file descriptor of the socket.
   int sock;
-
+  
   // This stores information about the server that is being connected to.
   sockaddr_in serverAddress;
 

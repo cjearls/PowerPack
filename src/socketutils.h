@@ -97,6 +97,9 @@ class socketClient {
   // This stores information about the server that is being connected to.
   sockaddr_in serverAddress;
 
+  void openSocket();
+  void closeSocket();
+
   // This is a wrapper for socket read that stores the data in the given buffer.
   void readData(void* buf, size_t size);
 

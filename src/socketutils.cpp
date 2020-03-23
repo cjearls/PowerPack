@@ -75,8 +75,8 @@ void socketServer::listenForClient() {
     }
     // Once the connection has been accepted, keep reading until
     // handleClientConnection() gives an error.
-    while (handleClientConnection(readSocket) == 0)
-      ;
+    handleClientConnection(readSocket);
+      
   }
 }
 

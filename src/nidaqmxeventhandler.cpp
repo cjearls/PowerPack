@@ -21,15 +21,6 @@ NIDAQmxEventHandler::NIDAQmxEventHandler(std::string logFilePath) {
   writer.open(logFile, std::fstream::out);
 }
 
-// TODO: DETERMINE ACCURACY OF THESE CONSTANTS
-// coresponds to ATX 24-pin (maybe..?)
-float64 nidaq_chan_volts[] = {
-    3.3,    3.3,   5.00, 5.00,            /* NIDAQ1 MOD1 channel 0-3 */
-    12.00,  12.00, 3.3,  3.3,             /* NIDAQ1 MOD1 channel 4-7 */
-    -12.00, 5.00,  5.00, 5.00,            /* NIDAQ1 MOD1 channel 16-19 */
-    12.0,   1.0,   12.0, 12.0, 12.0, 12.0 /* NIDAQ1 MOD3 channel 0-5 */
-};
-
 /**
  * Performs meter setup. Called after recieving the "start session"
  * communication
@@ -38,12 +29,6 @@ float64 nidaq_chan_volts[] = {
  */
 void NIDAQmxEventHandler::startHandler(uint64_t timestamp) {
   timestamps.emplace_back("Starting Session...", timestamp);
-
-  writer << "CHANNEL DESCRIPTION: " << config.channelDescription << std::endl;
-  writer << "START TIME: " << timestamps[0].second << std::endl;
-  writer << "NUMBER OF CHANNELS: " << config.numChannels << std::endl;
-  writer << "SAMPLE RATE: " << config.sampleRate << std::endl;
-  writer << std::endl;
 
   int32 error = 0;
   taskHandle = 0;
@@ -58,8 +43,9 @@ void NIDAQmxEventHandler::startHandler(uint64_t timestamp) {
       taskHandle, config.channelDescription.c_str(), "", DAQmx_Val_Cfg_Default,
       -10.0, 10.0, DAQmx_Val_Volts, NULL));
 
-  DAQmxErrChk(DAQmxCfgSampClkTiming(taskHandle, NULL, 1000.0, DAQmx_Val_Rising,
-                                    DAQmx_Val_ContSamps, 16000));
+  DAQmxErrChk(DAQmxCfgSampClkTiming(taskHandle, NULL, config.samplesPerSecond,
+                                    DAQmx_Val_Rising, DAQmx_Val_ContSamps,
+                                    16000));
 
   DAQmxErrChk(DAQmxRegisterEveryNSamplesEvent(
       taskHandle, DAQmx_Val_Acquired_Into_Buffer, config.sampleRate, 0,
@@ -101,25 +87,55 @@ void NIDAQmxEventHandler::endHandler(uint64_t timestamp) {
   DAQmxStopTask(taskHandle);
   DAQmxClearTask(taskHandle);
 
-  // print timestamps
-  writer << std::endl;
-  for (auto &entry : timestamps) {
-    writer << entry.second << "\t" << entry.first << std::endl;
-  }
-
-  writer << std::endl;
-  writer << "NUMBER OF TIMESTAMPS: " << timestamps.size() << std::endl;
-  writer << "TOTAL SAMPLES TAKEN: " << totalSamplesRead << std::endl;
+  printResults();
 }
 
 void NIDAQmxEventHandler::configure(Configuration configuration) {
   config.numChannels =
       stoi(configuration.get("NIDAQmxNumChannels"), nullptr, 10);
   config.sampleRate = stoi(configuration.get("NIDAQmxSampleRate"), nullptr, 10);
+  config.samplesPerSecond = stof(configuration.get("NIDAQmxSamplesPerSecond"));
   config.bufferSize = config.numChannels * config.sampleRate;
   config.channelDescription = configuration.get("NIDAQmxChannelDescription");
   config.channelVoltages =
       stringToDoubleArray(configuration.get("NIDAQmxChannelVoltages"));
+}
+
+void NIDAQmxEventHandler::storeReadings(float64 *readings, size_t numChannels) {
+  std::vector<float64> res;
+  for (size_t i = 0; i < numChannels; i++) {
+    res.push_back(readings[i]);
+  }
+
+  measurements.emplace_back(res);
+}
+
+void NIDAQmxEventHandler::printResults() {
+  writer << "CHANNEL DESCRIPTION: " << config.channelDescription << std::endl;
+  writer << "START TIME: " << timestamps[0].second << std::endl;
+  writer << "NUMBER OF CHANNELS: " << config.numChannels << std::endl;
+  writer << "SAMPLE RATE: " << config.sampleRate << std::endl;
+  writer << "SAMPLES PER SECOND: " << config.samplesPerSecond << std::endl;
+  writer << "NUMBER OF TIMESTAMPS: " << timestamps.size() << std::endl;
+  writer << "TOTAL SAMPLES TAKEN: " << totalSamplesRead << std::endl;
+
+  // print timestamps
+  writer << std::endl;
+  for (auto &entry : timestamps) {
+    writer << entry.second << "|" << entry.first << std::endl;
+  }
+
+  // print readings
+  writer << std::endl;
+  for (auto &entry : measurements) {
+    auto iter = entry.begin();
+    writer << *iter;
+    while (++iter != entry.end()) {
+      writer << ',' << *iter;
+    }
+
+    writer << std::endl;
+  }
 }
 
 /**
@@ -174,11 +190,7 @@ int32 CVICALLBACK EveryNCallback(TaskHandle taskHandle,
   nidaqDiffVoltToPower(powerReadings, channels, handler->config.channelVoltages,
                        numChannels);
 
-  for (int index = 0; index < numChannels; index++) {
-    dataString += std::to_string(powerReadings[index]) + " ";
-  }
-
-  handler->writer << dataString << std::endl;
+  handler->storeReadings(powerReadings, numChannels);
 
 Error:
   if (DAQmxFailed(error)) {

@@ -73,8 +73,10 @@ void nidaqDiffVoltToPower(float64 *result, float64 *readings, float64 *voltages,
 struct NIDAQmxConfig {
   // Number of channels being used
   int numChannels;
-  // Number of samples per callback
+  // Number of samples taken before a callback is triggered
   int32 sampleRate;
+  // Number of samples taken per second
+  float64 samplesPerSecond;
   // Minimum buffer size needed to hold channel data in a callback
   uInt32 bufferSize;
   // Description of channels being used
@@ -95,9 +97,10 @@ class NIDAQmxEventHandler : public eventHandler {
   // default destructor
   virtual ~NIDAQmxEventHandler();
   void configure(Configuration configuration);
+  void storeReadings(float64* readings, size_t numChannels);
 
+  // handles start event
   void startHandler(uint64_t timestamp);
-
   // handles tag event
   void tagHandler(uint64_t timestamp, std::string tag);
   // handles end event
@@ -106,6 +109,10 @@ class NIDAQmxEventHandler : public eventHandler {
  private:
   // internal handle for nidaq measurement task
   TaskHandle taskHandle;
+  // vector holding vectors of measurements
+  std::vector<std::vector<float64>> measurements;
+  // print results to file
+  void printResults();
 };
 
 #endif

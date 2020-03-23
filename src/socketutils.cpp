@@ -2,7 +2,7 @@
 
 /**
  * Print an error message to stderr and exit with failure code
- * 
+ *
  * @param errorMsg the message to write to standard error
  */
 void printError(std::string errorMsg) {
@@ -12,11 +12,13 @@ void printError(std::string errorMsg) {
 
 /**
  * Constructor for socket server. Set up sockets for communication.
- * 
- * @param portNumber the port number of the socket that the server will listen on
- * @param eventHandler the event handler that will respond to communication events
- */ 
-socketServer::socketServer(uint16_t portNumber, eventHandler* eventHandler) {
+ *
+ * @param portNumber the port number of the socket that the server will listen
+ * on
+ * @param eventHandler the event handler that will respond to communication
+ * events
+ */
+socketServer::socketServer(uint16_t portNumber, eventHandler *eventHandler) {
   handler = eventHandler;
 
   // This causes the connection to be IPv4.
@@ -47,13 +49,12 @@ socketServer::socketServer(uint16_t portNumber, eventHandler* eventHandler) {
 
 /**
  * Destructor for socket server. Closes its socket
- */ 
+ */
 socketServer::~socketServer() { close(sock); }
-
 
 /**
  * Reads data from a given socket into a buffer
- * @param socketFD the socket file descriptor that should be read from
+ * @param socketFD the socket file descriptor that is read from
  * @param buf the buffer that the data will be written to
  * @param size the size of the data to be read and moved to buf
  */
@@ -71,10 +72,12 @@ void socketServer::readData(int socketFD, void *buf, size_t size) {
   } while (to_read);
 }
 
-
 /**
- * 
- */ 
+ * Reads data from a given socket into a buffer
+ * @param socketFD the socket file descriptor that is written to
+ * @param buf the buffer that will be written to the socket
+ * @param size the size of the data to be written to the socket
+ */
 void socketServer::writeData(int socketFD, void *buf, size_t size) {
   ssize_t bytesSent;
   if ((bytesSent = send(socketFD, buf, size, 0)) < size) {
@@ -84,6 +87,10 @@ void socketServer::writeData(int socketFD, void *buf, size_t size) {
   }
 }
 
+/**
+ * Establish a server client connection and handle client requests until
+ * completion.
+ */
 void socketServer::listenForClient() {
   socklen_t clientLength;
   int readSocket;
@@ -93,8 +100,7 @@ void socketServer::listenForClient() {
   }
 
   clientLength = sizeof(address);
-  if ((readSocket = accept(sock, (sockaddr *)&address,
-                           &clientLength)) == -1) {
+  if ((readSocket = accept(sock, (sockaddr *)&address, &clientLength)) == -1) {
     printError("Error, the accept failed with errno: ");
   }
   // Once the connection has been accepted, keep reading until
@@ -103,6 +109,11 @@ void socketServer::listenForClient() {
     ;
 }
 
+/**
+ * Handles an arbitrary communication from a client. Responsible for calling the
+ * correct handler for each communication.
+ * @param readSocket the socket that communications can be read from
+ */
 int socketServer::handleClientConnection(int readSocket) {
   char msgTypeBuffer;
   readData(readSocket, &msgTypeBuffer, sizeof(char));
@@ -127,6 +138,11 @@ int socketServer::handleClientConnection(int readSocket) {
   return 0;
 }
 
+/**
+ * Process the "start session" communication. Pass the start session time stamp
+ * to the start session handler.
+ * @param readSocket the socket that communications can be read from
+ */
 void socketServer::handleSessionStart(int readSocket) {
   uint64_t timestamp;
   read(readSocket, &timestamp, sizeof(uint64_t));
@@ -137,6 +153,11 @@ void socketServer::handleSessionStart(int readSocket) {
   writeData(readSocket, &response, sizeof(char));
 }
 
+/**
+ * Process the "end session" communication. Pass the end session time stamp to
+ * the end session handler.
+ * @param readSocket the socket that communications can be read from
+ */
 void socketServer::handleSessionEnd(int readSocket) {
   uint64_t timestamp;
   read(readSocket, &timestamp, sizeof(uint64_t));
@@ -144,6 +165,11 @@ void socketServer::handleSessionEnd(int readSocket) {
   socketServer::handler->endHandler(timestamp);
 }
 
+/**
+ * Process a single tag. Pass the tag's timestamp and message to the tag
+ * handler.
+ * @param socketFD the socket that the tag is sent to
+ */
 void socketServer::handleTag(int socketFD) {
   // Timestamps is pushed with an empty string so that the nanoseconds timestamp
   // can be recorded as accurately as possible.
@@ -167,6 +193,11 @@ void socketServer::handleTag(int socketFD) {
 
 //####################################################################
 
+/**
+ * Constructor for socket client. Establishes connection with server
+ * @param portNumber the port number used for communication
+ * @param serverIP the ip address used for communication
+ */
 socketClient::socketClient(uint16_t portNumber, std::string serverIP) {
   // This sets the socket to IPv4 and to the port number given.
   serverAddress.sin_family = AF_INET;
@@ -188,14 +219,27 @@ socketClient::socketClient(uint16_t portNumber, std::string serverIP) {
   }
 }
 
+/**
+ * Destructor for socket client that closes its socket
+ */
 socketClient::~socketClient() { close(sock); }
 
+/**
+ * Helper that allows the client to read data from its socket
+ * @param buf the buffer that data will be read into
+ * @param size the size of the data to be read into buf
+ */
 void socketClient::readData(void *buf, size_t size) {
   if (read(sock, buf, size) == -1) {
     printError("Client failed to completely read from socket\n");
   }
 }
 
+/**
+ * Helper that allows the client to write arbitrary data to its socket
+ * @param buf the buffer containig the data to be sent
+ * @param size the size of the data to be sent from buf
+ */
 void socketClient::writeData(void *buf, size_t size) {
   int bytesSent;
 
@@ -206,6 +250,9 @@ void socketClient::writeData(void *buf, size_t size) {
   }
 }
 
+/**
+ * Sesnds the "start session" communication from client to server
+ */
 void socketClient::sendSessionStart() {
   char buffer[512];
   uint64_t currTime = nanos();
@@ -230,6 +277,9 @@ void socketClient::sendSessionStart() {
   std::cout << "Handshake OK!" << std::endl;
 }
 
+/**
+ * Sends the "end session" communication from client to server
+ */
 void socketClient::sendSessionEnd() {
   char buffer[512];
   uint64_t currTime = nanos();
@@ -245,6 +295,11 @@ void socketClient::sendSessionEnd() {
   writeData(buffer, position);
 }
 
+/**
+ * Sends a tag of tagName from client to sever
+ *
+ * @param tagName the label given to the sent tag
+ */
 void socketClient::sendTag(std::string tagName) {
   char buffer[512];
   uint64_t currTime = nanos();

@@ -1,85 +1,127 @@
 #include "functionapi.h"
 
-socketServer initializeMeterServer(int portNumber, eventHandler *handler) {
+socketServer initializeMeterServer(uint16_t portNumber, eventHandler* handler) {
   socketServer server(portNumber, handler);
   return server;
 }
 
-int readServerConfig(std::string configFilePath) {
-  std::string portNumber;
-  std::string tempString;
-  std::ifstream configFile;
-
-  configFile.open(configFilePath);
-
-  while (!configFile.eof()) {
-    getline(configFile, tempString);
-    if (tempString.length()) {
-      if (isSubString(tempString, "port")) {
-        portNumber = extractConfigValue(tempString);
-      } else {
-        std::cerr << "Unrecognized value in server config file\n" << tempString;
-        exit(EXIT_FAILURE);
-      }
-    }
-  }
-
-  if (portNumber == "") {
-    std::cerr << "server portNumber was not set\n";
-    exit(EXIT_FAILURE);
-  }
-
-  return stoi(portNumber, nullptr, 10);
-}
-
-socketClient initializeFunctionClient(
-    std::pair<int, std::string> clientNetworkInfo) {
-  socketClient client(clientNetworkInfo.first, clientNetworkInfo.second);
+socketClient initializeFunctionClient(uint16_t port, std::string serverAddress) {
+  socketClient client(port, serverAddress);
   return client;
 }
 
-std::pair<int, std::string> readClientConfig(std::string configFilePath) {
-  std::string portNumber = "";
-  std::string IPAddress = "";
+Configuration::Configuration(std::string configFile) {
+  map = createConfigurationMap(configFile);
+}
+
+Configuration::~Configuration(){}
+
+std::string Configuration::get(std::string key) {
+  if (map.find(key) == map.end()) {
+    std::cerr << key << " not specified in configuration." << std::endl;
+    exit(EXIT_FAILURE);
+  }
+
+  return map.at(key);
+}
+
+std::string Configuration::toString() {
+  std::stringstream ret;  // return value
+
+  for (auto& entry : map) {
+    ret << entry.first << ": " << entry.second << "\n";
+  }
+  return ret.str();
+}
+
+std::unordered_map<std::string, std::string> createConfigurationMap(
+  std::string configPath) {
+  // Input stream for reading file
+  std::ifstream configFileStream;
+  // Temporary variable to hold incoming lines
   std::string tempString;
-  std::ifstream configFile;
+  // Current key-vale pair being parsed
+  std::pair<std::string, std::string> currPair;
+  // Map of key-value pair from the input file
+  std::unordered_map<std::string, std::string> configuration;
 
-  configFile.open(configFilePath);
+  configFileStream.open(configPath);
 
-  while (!configFile.eof()) {
-    getline(configFile, tempString);
-    std::cout << tempString << std::endl;
-    if (tempString.length()) {  // ignore empty lines
-      if (isSubString(tempString, "port")) {
-        portNumber = extractConfigValue(tempString);
-      } else if (isSubString(tempString, "serveraddress")) {
-        IPAddress = extractConfigValue(tempString);
-      } else {
-        std::cerr << "Unrecognized value in client config file" << std::endl;
-        exit(EXIT_FAILURE);
-      }
+  if (!configFileStream.good()) {
+    std::cerr << "Error opening" << configPath
+              << ". Please make sure the file exists." << std::endl;
+    exit(EXIT_FAILURE);
+  }
+
+  while (!configFileStream.eof()) {
+    // read line
+    getline(configFileStream, tempString);
+
+    // skip lines that are empty or begin with '!'
+    if (!tempString.length() || *(tempString.begin()) == '#') {
+      continue;
     }
+
+    // create key value pair
+    currPair = findPair(tempString, '=');
+
+    // check that the key doesn't already exist
+    if (configuration.find(currPair.first) != configuration.end()) {
+      std::cerr << "Value appears twice in configuration file: "
+                << currPair.first << std::endl;
+      exit(EXIT_FAILURE);
+    }
+
+    // add pair
+    configuration[currPair.first] = currPair.second;
   }
 
-  if (portNumber == "" || IPAddress == "") {
-    std::cerr << "portNumber or IPAddress was not set\n";
+  return configuration;
+}
+
+std::pair<std::string, std::string> findPair(std::string inputString,
+                                             char delimiter) {
+  size_t delimiterPosition;
+  std::string key;
+  std::string value;
+
+  // find the delimiter
+  if ((delimiterPosition = inputString.find(delimiter)) == std::string::npos) {
+    std::cerr << "Unable to find delimiter in current line of config file"
+              << std::endl;
     exit(EXIT_FAILURE);
   }
 
-  return std::make_pair(stoi(portNumber, nullptr, 10), IPAddress);
-}
+  // split the string into key and value
+  key = inputString.substr(0, delimiterPosition);
+  value = inputString.substr(delimiterPosition + 1, std::string::npos);
 
-std::string extractConfigValue(std::string inputString) {
-  std::size_t delimPosition;
-  std::cout << "extracting\n";
-  if ((delimPosition = inputString.find("=")) == std::string::npos) {
-    std::cerr << "Unable to find '=' in config file\n";
+  // check that neither the key nor value are empty
+  if (!key.size() || !value.size()) {
+    std::cerr << "Incomplete key value pair!" << std::endl;
     exit(EXIT_FAILURE);
   }
 
-  return inputString.substr(delimPosition + 1, std::string::npos);
+  return std::make_pair(key, value);
 }
 
-bool isSubString(std::string inputString, std::string subString) {
-  return inputString.find(subString) != std::string::npos;
+//parse a list of doubles into an array
+double* stringToDoubleArray(std::string str){
+  // the double are first stored in a vactor b/c the vector
+  // can dynamically resize
+  std::vector<double> vec;
+  size_t idx = 0; //index in origin string
+  size_t tmp; //index relative to substring
+
+  // parse doubles until empty
+  while(idx < str.size()){
+    vec.push_back(std::stod(str.substr(idx), &tmp));
+    idx += tmp;
+  }
+
+  //copy the results into an array
+  double* arr = new double[vec.size()];
+  std::copy(vec.begin(),vec.end(), arr);
+
+  return arr;
 }

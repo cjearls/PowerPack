@@ -4,8 +4,8 @@
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <netinet/in.h>
-#include <sys/socket.h>
 #include <sys/ioctl.h>
+#include <sys/socket.h>
 #include <sys/uio.h>
 #include <unistd.h>
 #include <cerrno>
@@ -15,8 +15,8 @@
 #include <string>
 #include <utility>
 #include <vector>
-#include "timeutils.h"
 #include "eventhandler.h"
+#include "timeutils.h"
 
 // CONTROL MESSAGE MACROS
 
@@ -25,9 +25,12 @@
 #define SESSION_TAG 2
 #define HANDSHAKE_OK 3
 
+/**
+ * The socketServer class handles communication for the server side (meter side)
+ */
 class socketServer {
  public:
-  socketServer(int portNumber, eventHandler *handler);
+  socketServer(uint16_t portNumber, eventHandler* handler);
 
   ~socketServer();
 
@@ -38,19 +41,16 @@ class socketServer {
  private:
   // This is the file descriptor of the socket.
   int sock;
-  eventHandler *handler;
+  eventHandler* handler;
 
   // This stores information about the server that is being connected to.
   sockaddr_in address;
-
-  // This stores a list of timestamps and their identifying strings.
-  std::vector<std::pair<std::string, uint64_t>> timestamps;
 
   // This is a wrapper for socket read that stores the data in the given buffer.
   void readData(int socketFD, void* buf, size_t size);
 
   // This is a wrapper for socket write that sends data from the given buffer.
-  void write(int socketFD, void* buf, size_t size);
+  void writeData(int socketFD, void* buf, size_t size);
 
   // This function interprets the data received in listenForClient() and calls
   // the correct function to handle the communication.`
@@ -69,9 +69,13 @@ class socketServer {
   void handleTag(int socketFD);
 };
 
+/**
+ * The socketServer class handles communication for the client side (benchmark
+ * side)
+ */
 class socketClient {
  public:
-  socketClient(int portNumber, std::string serverIP);
+  socketClient(uint16_t portNumber, std::string serverIP);
 
   ~socketClient();
 
@@ -96,7 +100,7 @@ class socketClient {
   void readData(void* buf, size_t size);
 
   // This is a wrapper for socket write that sends data from the given buffer.
-  void write(void* buf, size_t size);
+  void writeData(void* buf, size_t size);
 };
 
 // This function prints an error message, prints the last errorno, and exits the

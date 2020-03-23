@@ -3,6 +3,8 @@
 
 #include <NIDAQmx.h>
 #include "eventhandler.h"
+#include "functionapi.h"
+
 /*********************************************************************
  *
  * ANSI C Example program:
@@ -46,44 +48,64 @@
  *
  *********************************************************************/
 
-#define NUM_CHANNELS 18 //number of channels used on chassis
-#define NUM_SAMPLES 40 //num samples per callback
-#define BUFFER_SIZE NUM_SAMPLES * NUM_CHANNELS
-#define ERRBUFF 2048
+// TODO: DETERMINE ACCURACY OF THIS CONSTANTS
+#define NIDAQ_CHAN_RESISTOR 0.003  // currently don't know what this is for..
 
-//TODO: DETERMINE ACCURACY OF THIS CONSTANTS
-#define NIDAQ_CHAN_RESISTOR 0.003 //currently don't know what this is for..
-
+// Allows DAQmx functions to respond to errors with their own error block
 #define DAQmxErrChk(functionCall)          \
   if (DAQmxFailed(error = (functionCall))) \
-    goto Error;                            \
-  else
+  { goto Error; }                            
 
-int NIMeasure(void);
+// int NIMeasure(void); I don't think this is used
 
+// called after measurements have concluded
 int32 CVICALLBACK DoneCallback(TaskHandle taskHandle, int32 status,
                                void *callbackData);
+
+// called after every n samples are measured by the ni meter
 int32 CVICALLBACK EveryNCallback(TaskHandle taskHandle,
                                  int32 everyNsamplesEventType, uInt32 nSamples,
                                  void *callbackData);
-void nidaq_diff_volt_to_power(float64 *ChanReading, int num_chan);
+void nidaqDiffVoltToPower(float64 *result, float64 *readings, float64 *voltages,
+                          size_t numChannels);
+
+// Wrapper struct to bundle NIDAQmx related configuration options
+struct NIDAQmxConfig {
+  // Number of channels being used
+  int numChannels;
+  // Number of samples per callback
+  int32 sampleRate;
+  // Minimum buffer size needed to hold channel data in a callback
+  uInt32 bufferSize;
+  // Description of channels being used
+  std::string channelDescription;
+  // Voltages for each channel, used when converting readings from voltage to
+  // power
+  double *channelVoltages;
+};
 
 class NIDAQmxEventHandler : public eventHandler {
  public:
+  int32 totalSamplesRead = 0;
+  // configuration options
+  NIDAQmxConfig config;
   NIDAQmxEventHandler(void);
+  // constructor with given logfile
   NIDAQmxEventHandler(std::string logFilePath);
+  // default destructor
   virtual ~NIDAQmxEventHandler();
-  
+  void configure(Configuration configuration);
 
-  void startHandler();
-  void tagHandler();
-  void endHandler();
+  void startHandler(uint64_t timestamp);
+
+  // handles tag event
+  void tagHandler(uint64_t timestamp, std::string tag);
+  // handles end event
+  void endHandler(uint64_t timestamp);
 
  private:
+  // internal handle for nidaq measurement task
   TaskHandle taskHandle;
-  bool stopFlag = false;
-  std::string logfilePath;
-  
 };
 
 #endif

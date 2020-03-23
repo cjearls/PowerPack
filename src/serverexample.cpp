@@ -2,34 +2,30 @@
 #include "functionapi.h"
 #include "nidaqmxeventhandler.h"
 
-int handlerThread(eventHandler* handler) {
-  //sends event to thread
 
-  handler->startHandler();
-  handler->tagHandler();
-  handler->tagHandler();
-  handler->tagHandler();
-  handler->tagHandler();
-  handler->endHandler();
-
-  return 0;
-}
-
+/**
+ * Read server config info from configFile and initialize a server. Used as basic test of powerpack functionality
+ */ 
 int main(int argc, char** argv) {
+  if (argc != 3) {
+    std::cerr << "Usage: " << argv[0] << " <config file> <output file>"
+              << std::endl;
+    exit(EXIT_FAILURE);
+  }
   std::string configFile(argv[1]);
   NIDAQmxEventHandler niHandler(argv[2]);
   eventHandler* handler;
   handler = &niHandler;
+  Configuration configuration = Configuration(configFile);
 
-  socketServer server =
-      initializeMeterServer(readServerConfig(configFile), handler);
+  niHandler.configure(configuration);
+
+  uint16_t port = stoi(configuration.get("port"), nullptr, 10);
+
+  std::cout << configuration.toString();
+
+  socketServer server = initializeMeterServer(port, handler);
   server.listenForClient();
-
-  //handlers are handled in a thread because they aren't synchronous.
-  //If they weren't in a thread, the main function would end, causing a
-  //'virtual method teminated error.
-  //std::thread runHandler(handlerThread, handler);
-  //runHandler.join();
 
   return 0;
 }

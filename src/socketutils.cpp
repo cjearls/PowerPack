@@ -141,6 +141,7 @@ void socketServer::handleTag(int socketFD) {
 }
 
 //####################################################################
+socketClient::socketClient(){}
 
 socketClient::socketClient(uint16_t portNumber, std::string serverIP) {
   // This sets the socket to IPv4 and to the port number given.

@@ -76,6 +76,7 @@ class socketServer {
 class socketClient {
  public:
   socketClient(uint16_t portNumber, std::string serverIP);
+  socketClient();
 
   ~socketClient();
 

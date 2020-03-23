@@ -1,11 +1,22 @@
 #include "socketutils.h"
 
+/**
+ * Print an error message to stderr and exit with failure code
+ * 
+ * @param errorMsg the message to write to standard error
+ */
 void printError(std::string errorMsg) {
   std::cerr << errorMsg << std::strerror(errno) << "\n";
   exit(EXIT_FAILURE);
 }
 
-socketServer::socketServer(uint16_t portNumber, eventHandler *eventHandler) {
+/**
+ * Constructor for socket server. Set up sockets for communication.
+ * 
+ * @param portNumber the port number of the socket that the server will listen on
+ * @param eventHandler the event handler that will respond to communication events
+ */ 
+socketServer::socketServer(uint16_t portNumber, eventHandler* eventHandler) {
   handler = eventHandler;
 
   // This causes the connection to be IPv4.
@@ -34,8 +45,18 @@ socketServer::socketServer(uint16_t portNumber, eventHandler *eventHandler) {
   }
 }
 
+/**
+ * Destructor for socket server. Closes its socket
+ */ 
 socketServer::~socketServer() { close(sock); }
 
+
+/**
+ * Reads data from a given socket into a buffer
+ * @param socketFD the socket file descriptor that should be read from
+ * @param buf the buffer that the data will be written to
+ * @param size the size of the data to be read and moved to buf
+ */
 void socketServer::readData(int socketFD, void *buf, size_t size) {
   int *tmp = (int *)buf;
   size_t to_read = size;
@@ -50,6 +71,10 @@ void socketServer::readData(int socketFD, void *buf, size_t size) {
   } while (to_read);
 }
 
+
+/**
+ * 
+ */ 
 void socketServer::writeData(int socketFD, void *buf, size_t size) {
   ssize_t bytesSent;
   if ((bytesSent = send(socketFD, buf, size, 0)) < size) {

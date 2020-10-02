@@ -1,0 +1,88 @@
+## Preamble
+
+- All this is built for CentOS 7
+
+------------------------------------------------------------------------
+
+### Install some libraries
+
+yum install -y git wget ni-daqmx  
+
+------------------------------------------------------------------------
+
+### NI Linux Device Drivers
+
+
+
+http://download.ni.com/support/softlib//MasterRepository/LinuxDrivers2019/ni-software-2019-19.2.0.49152-0+f0.el7.noarch.rpm
+1. Click RHEL7/CentOS7 RPM
+2. Install the addon
+        rpm -i <FILE>
+        $ rpm -i ni-software-2019-19.2.0.49152-0+f0.el7.noarch.rpm  
+3. Download NI Driver software
+        $ yum install ni-daqmx
+
+------------------------------------------------------------------------
+
+_"devtoolset-7 - Developer Toolset is designed for developers working on CentOS or Red Hat Enterprise Linux platform. It provides current versions of the GNU Compiler Collection, GNU Debugger, and other development, debugging, and performance monitoring tools."_
+
+https://www.softwarecollections.org/en/scls/rhscl/devtoolset-7/
+
+1. Install a package with repository for your system:
+    On CentOS, install package centos-release-scl available in CentOS repository:
+    $ sudo yum install centos-release-scl
+
+2. On RHEL, enable RHSCL repository for you system:
+    $ sudo yum-config-manager --enable rhel-server-rhscl-7-rpms
+
+3. Install the collection:
+    $ sudo yum install devtoolset-7
+
+4. Start using software collections:
+    $ scl enable devtoolset-7 bash
+
+------------------------------------------------------------------------
+
+### CUDA Toolkit
+z
+
+------------------------------------------------------------------------
+
+### FAQ
+When I try to use the nidaqmxconfig, the console complains that it can't find .ko files
+    You are missing kernel headers, run the following commands and reboot.
+    sudo yum install "kernel-devel-uname-r == $(uname -r)"
+    
+After I install the NI Drivers, it complains that SMAP is enabled
+    You need to add 'nosmap' to the kernel config
+    1. Open /etc/default/grub
+    2. Look for an option like 'GRUB_CMDLINE_LINUX'
+    3. add nosmap to the end of that line, then save and exit
+    4. Generate a new grub.cfg file (we used the UEFI-based one)
+        BIOS-based sytem: grub2-mkconfig -o /boot/grub2/grub.cfg
+        UEFI-based system: grub2-mkconfig -o /boot/efi/EFI/redhat/grub.cfg
+    5. Reboot the system
+    6. You can verify if this worked by checking '/proc/cmdline'
+    
+I need to add our code to the SHOC benchmarks!
+    1. Make an object file. below is a reference from our Makefile
+	$(CXX) -shared- -o libpowerpack.so $(OBJS)
+    2. Copy it to the correct lib folder (in our case it's in the devtoolset)
+	sudo cp libpowerpack.so /opt/rh/devtoolset-7/root/usr/lib
+    3. In the related benchmark .cpp file, add the needed headers and function calls
+    4. [CHECK IF THIS IS NEEDED] Add .h files to the directory with the benchmark. 
+	nidaqmxeventhandler.h, socketutils.h, functionapi.h, eventhandler.h
+    5. In the makefile, looks for 'LDFLAGS' and add -lpowerpack
+    5. MAKE
+------------------------------------------------------------------------
+
+### Misc
+    
+Network Switch: M4300-24X
+
+
+Dori config
+Address: 172.16.0.XX  (Choose whatever for XX that's not in use)
+Netmask: 16
+Gateway: 172.16.100.1
+

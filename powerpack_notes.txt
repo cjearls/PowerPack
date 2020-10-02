@@ -4,17 +4,15 @@
 
 ------------------------------------------------------------------------
 
-### Install some libraries
+### 1. Install some libraries
 
 yum install -y git wget ni-daqmx  
 
 ------------------------------------------------------------------------
 
-### NI Linux Device Drivers
+### 2. NI Linux Device Drivers
 
-
-
-http://download.ni.com/support/softlib//MasterRepository/LinuxDrivers2019/ni-software-2019-19.2.0.49152-0+f0.el7.noarch.rpm
+- Go to http://download.ni.com/support/softlib//MasterRepository/LinuxDrivers2019/ni-software-2019-19.2.0.49152-0+f0.el7.noarch.rpm
 1. Click RHEL7/CentOS7 RPM
 2. Install the addon
         rpm -i <FILE>
@@ -44,7 +42,7 @@ https://www.softwarecollections.org/en/scls/rhscl/devtoolset-7/
 ------------------------------------------------------------------------
 
 ### CUDA Toolkit
-z
+
 
 ------------------------------------------------------------------------
 
@@ -76,13 +74,4 @@ I need to add our code to the SHOC benchmarks!
     5. MAKE
 ------------------------------------------------------------------------
 
-### Misc
-    
-Network Switch: M4300-24X
-
-
-Dori config
-Address: 172.16.0.XX  (Choose whatever for XX that's not in use)
-Netmask: 16
-Gateway: 172.16.100.1
 
